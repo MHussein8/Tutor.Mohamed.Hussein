@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import parentMessageService from '../../services/parentMessageService'; // استيراد افتراضي
 import '../../styles/ParentMessageForm.css';
 
 const ParentMessageForm = ({ onSendMessage, parentId, studentId, teacherId }) => {
