@@ -1,4 +1,5 @@
 import React from 'react';
+import { MAX_SCORES, calculateMaxTotalScore } from '../../config/assessmentConfig';
 import {
   BarChart,
   Bar,
@@ -20,27 +21,23 @@ const StudentProgressChart = ({ dailyAssessments }) => {
   }
 
   // تحويل البيانات لتتناسب مع المخطط
-  const chartData = dailyAssessments.slice(0, 7).map(assessment => {
-    const totalScore = (
-      (assessment.grammar_score || 0) +
-      (assessment.vocabulary_score || 0) +
-      (assessment.writing_score || 0) +
-      (assessment.homework_score || 0) +
-      (assessment.memorization_score || 0) +
-      (assessment.interaction_score || 0) +
-      (assessment.attendance_score || 0)
-    );
-    
-    const percentage = Math.round((totalScore / 100) * 100);
+const chartData = dailyAssessments.slice(0, 7).map(assessment => {
+  const totalScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
+    return sum + (assessment[key] || 0);
+  }, 0);
+  
+    console.log("Assessment:", assessment);
+  console.log("Total Score:", totalScore);
+  const percentage = Math.round((totalScore / calculateMaxTotalScore()) * 100);
 
-    return {
-      name: new Date(assessment.lesson_date).toLocaleDateString('ar-EG', {
-        weekday: 'short',
-        day: 'numeric'
-      }),
-      أداء: percentage
-    };
-  }).reverse();
+  return {
+    name: new Date(assessment.lesson_date).toLocaleDateString('ar-EG', {
+      weekday: 'short',
+      day: 'numeric'
+    }),
+    أداء: percentage
+  };
+}).reverse();
 
   return (
     <div className="progress-chart">

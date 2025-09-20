@@ -9,7 +9,7 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    created_at: new Date().toISOString().slice(0, 10),
+    lesson_date: new Date().toISOString().slice(0, 10),
     start_time: '',
     end_time: '',
     education_type_id: '',
@@ -30,7 +30,7 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
         setFormData({
           title: '',
           content: '',
-          created_at: new Date().toISOString().slice(0, 10),
+          lesson_date: new Date().toISOString().slice(0, 10),
           start_time: '',
           end_time: '',
           education_type_id: '',
@@ -72,8 +72,9 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
     try {
       const lessonData = {
         ...formData,
-        start_time: formData.start_time + ':00',
-        end_time: formData.end_time + ':00'
+  lesson_date: formData.lesson_date, // تأكد من وجوده
+  start_time: formData.start_time + ':00',
+  end_time: formData.end_time + ':00'
       };
 
       if (lesson) {
@@ -129,8 +130,8 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
               <label>تاريخ الحصة</label>
               <input
                 type="date"
-                value={formData.created_at}
-                onChange={(e) => setFormData({...formData, created_at: e.target.value})}
+                value={formData.lesson_date}
+                onChange={(e) => setFormData({...formData, lesson_date: e.target.value})}
                 required
               />
             </div>

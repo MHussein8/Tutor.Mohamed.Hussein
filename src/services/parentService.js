@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { MAX_SCORES, calculateMaxTotalScore, SKILL_PRIORITY } from '../config/assessmentConfig';
 
 export const parentService = {
   // الحصول على بيانات الطلاب التابعين لولي الأمر
@@ -44,7 +45,7 @@ export const parentService = {
       .from('student_notes')
       .select('*')
       .eq('student_id', studentId)
-      .order('created_at', { ascending: false })
+      .order('lesson_date', { ascending: false })
       .limit(limit);
     
     if (error) throw error;
@@ -64,92 +65,125 @@ export const parentService = {
     
     if (data && data.length > 0) {
       const totalScores = data.map(assessment => {
-        return (
-          (assessment.grammar_score || 0) +
-          (assessment.vocabulary_score || 0) +
-          (assessment.writing_score || 0) +
-          (assessment.homework_score || 0) +
-          (assessment.memorization_score || 0) +
-          (assessment.interaction_score || 0) +
-          (assessment.attendance_score || 0)
-        );
+return Object.keys(MAX_SCORES).reduce((sum, key) => {
+  return sum + (assessment[key] || 0);  // إزالة `_score` من key
+}, 0);
       });
       
       const total = totalScores.reduce((sum, score) => sum + score, 0);
-      return Math.round((total / totalScores.length) * 100 / 70);
+      const totalMax = calculateMaxTotalScore() * data.length; // إجمالي القيم القصوى لكل التقييمات
+      return Math.round((total / totalMax) * 100); // النسبة المئوية
     }
     
     return 0;
   },
 
-// دالة جديدة: جمع التقرير الأسبوعي من التقييمات اليومية (مطابقة للوحة المعلم)
-getWeeklyReportFromDaily: async (studentId, weekStartDate) => {
-  try {
-    // استخدام نفس منطق حساب الأسبوع كما في teacherService
-    const startOfWeek = new Date(weekStartDate);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // السبت + 6 أيام = الجمعة
-
-    const { data: dailyAssessments, error } = await supabase
+    // الحصول على آخر تقييمين للطالب لحساب نسبة التقدم
+  getLastTwoAssessments: async (studentId) => {
+    const { data, error } = await supabase
       .from('daily_assessments')
       .select('*')
       .eq('student_id', studentId)
-      .gte('lesson_date', startOfWeek.toISOString().split('T')[0])
-      .lte('lesson_date', endOfWeek.toISOString().split('T')[0])
-      .order('lesson_date', { ascending: true });
-
+      .order('lesson_date', { ascending: false })
+      .limit(2);
+    
     if (error) throw error;
+    return data;
+  },
 
-    if (!dailyAssessments || dailyAssessments.length === 0) {
+  // دالة جديدة: جمع التقرير الأسبوعي من التقييمات اليومية
+  getWeeklyReportFromDaily: async (studentId, weekStartDate) => {
+    try {
+      // تحديد بداية ونهاية الأسبوع (السبت إلى الجمعة)
+      const startOfWeek = new Date(weekStartDate);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // السبت + 6 أيام = الجمعة
+
+      const { data: dailyAssessments, error } = await supabase
+        .from('daily_assessments')
+        .select('*')
+        .eq('student_id', studentId)
+        .gte('lesson_date', startOfWeek.toISOString().split('T')[0])
+        .lte('lesson_date', endOfWeek.toISOString().split('T')[0])
+        .order('lesson_date', { ascending: true });
+
+      if (error) throw error;
+
+      if (!dailyAssessments || dailyAssessments.length === 0) {
+        return null;
+      }
+
+      // حساب الإجماليات لكل فئة باستخدام MAX_SCORES
+      const totals = dailyAssessments.reduce((acc, assessment) => {
+        return Object.keys(MAX_SCORES).reduce((newAcc, key) => {
+          newAcc[key] = (newAcc[key] || 0) + (assessment[key] || 0);
+          return newAcc;
+        }, acc);
+      }, {});
+
+      const daysCount = dailyAssessments.length;
+      
+      // إنشاء التقرير بحساب متوسط كل فئة
+      const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
+        rep[`${key}_score`] = Math.round(totals[key] / daysCount);
+        return rep;
+      }, {});
+
+      // حساب الإجمالي الكلي والنسبة المئوية
+      report.total_score = Object.values(report).reduce((sum, score) => sum + score, 0);
+      report.percentage = Math.round((report.total_score / calculateMaxTotalScore()) * 100);
+
+      // جمع ملاحظات المعلمين
+      const allNotes = dailyAssessments
+        .filter(a => a.teacher_notes)
+        .map(a => a.teacher_notes);
+      
+      if (allNotes.length > 0) {
+        report.teacher_notes = allNotes.join('\n\n');
+      }
+
+      return report;
+
+    } catch (error) {
+      console.error('Error generating weekly report:', error);
       return null;
     }
+  },
 
-    // استخدام نفس طريقة الحساب كما في teacherService
-    const totals = dailyAssessments.reduce((acc, assessment) => ({
-      homework: acc.homework + (assessment.homework_score || 0),
-      grammar: acc.grammar + (assessment.grammar_score || 0),
-      vocabulary: acc.vocabulary + (assessment.vocabulary_score || 0),
-      memorization: acc.memorization + (assessment.memorization_score || 0),
-      attendance: acc.attendance + (assessment.attendance_score || 0),
-      writing: acc.writing + (assessment.writing_score || 0),
-      interaction: acc.interaction + (assessment.interaction_score || 0),
-    }), {
-      homework: 0, grammar: 0, vocabulary: 0, 
-      memorization: 0, attendance: 0, writing: 0, interaction: 0
+  // حساب أكثر المهارات تحسناً بين آخر تقييمين
+getMostImprovedSkill: async (studentId) => {
+  try {
+    const { data: assessments, error } = await supabase
+      .from('daily_assessments')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('lesson_date', { ascending: false })
+      .limit(2);
+
+    if (error) throw error;
+    if (!assessments || assessments.length < 2) return null;
+
+    const [current, previous] = assessments;
+    let mostImproved = { skill: null, improvement: 0 };
+
+    Object.keys(MAX_SCORES).forEach(key => {
+      const currentScore = current[key] || 0;
+      const previousScore = previous[key] || 0;
+      const improvement = currentScore - previousScore;
+      
+      if (improvement > mostImproved.improvement) {
+        mostImproved = { skill: key, improvement };
+      } else if (improvement === mostImproved.improvement && improvement > 0) {
+        // في حالة التساوي، اختر الأعلى أولوية
+        if (SKILL_PRIORITY[key] < SKILL_PRIORITY[mostImproved.skill]) {
+          mostImproved = { skill: key, improvement };
+        }
+      }
     });
 
-    const daysCount = dailyAssessments.length;
-    
-    const report = {
-      homework_score: Math.round(totals.homework / daysCount),
-      grammar_score: Math.round(totals.grammar / daysCount),
-      vocabulary_score: Math.round(totals.vocabulary / daysCount),
-      memorization_score: Math.round(totals.memorization / daysCount),
-      attendance_score: Math.round(totals.attendance / daysCount),
-      writing_score: Math.round(totals.writing / daysCount),
-      interaction_score: Math.round(totals.interaction / daysCount),
-    };
-
-    report.total_score = 
-      report.homework_score + report.grammar_score + report.vocabulary_score +
-      report.memorization_score + report.attendance_score + 
-      report.writing_score + report.interaction_score;
-
-    report.percentage = Math.round((report.total_score / 100) * 100);
-
-    // جمع ملاحظات المعلمين
-    const allNotes = dailyAssessments
-      .filter(a => a.teacher_notes)
-      .map(a => a.teacher_notes);
-    
-    if (allNotes.length > 0) {
-      report.teacher_notes = allNotes.join('\n\n');
-    }
-
-    return report;
-
+    return mostImproved.improvement > 0 ? mostImproved : null;
   } catch (error) {
-    console.error('Error generating weekly report:', error);
+    console.error('Error calculating improved skill:', error);
     return null;
   }
 }

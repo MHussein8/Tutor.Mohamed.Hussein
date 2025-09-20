@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 
 export const getTeacherStats = async () => {
   return { totalStudents: 25, averagePerformance: 85 };
@@ -25,6 +26,7 @@ export const getDailyAssessments = async () => {
 };
 
 export const getWeeklyReport = async (studentId, weekStartDate) => {
+  // تحديد بداية ونهاية الأسبوع (السبت إلى الجمعة)
   const startOfWeek = new Date(weekStartDate);
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6); // السبت + 6 أيام = الجمعة
@@ -43,37 +45,25 @@ export const getWeeklyReport = async (studentId, weekStartDate) => {
     return null;
   }
 
-  const totals = dailyAssessments.reduce((acc, assessment) => ({
-    homework: acc.homework + (assessment.homework_score || 0),
-    grammar: acc.grammar + (assessment.grammar_score || 0),
-    vocabulary: acc.vocabulary + (assessment.vocabulary_score || 0),
-    memorization: acc.memorization + (assessment.memorization_score || 0),
-    attendance: acc.attendance + (assessment.attendance_score || 0),
-    writing: acc.writing + (assessment.writing_score || 0),
-    interaction: acc.interaction + (assessment.interaction_score || 0),
-  }), {
-    homework: 0, grammar: 0, vocabulary: 0, 
-    memorization: 0, attendance: 0, writing: 0, interaction: 0
-  });
+  // حساب الإجماليات لكل فئة باستخدام MAX_SCORES
+  const totals = dailyAssessments.reduce((acc, assessment) => {
+    return Object.keys(MAX_SCORES).reduce((newAcc, key) => {
+      newAcc[key] = (newAcc[key] || 0) + (assessment[`${key}_score`] || 0);
+      return newAcc;
+    }, acc);
+  }, {});
 
   const daysCount = dailyAssessments.length;
   
-  const report = {
-    homework_score: Math.round(totals.homework / daysCount),
-    grammar_score: Math.round(totals.grammar / daysCount),
-    vocabulary_score: Math.round(totals.vocabulary / daysCount),
-    memorization_score: Math.round(totals.memorization / daysCount),
-    attendance_score: Math.round(totals.attendance / daysCount),
-    writing_score: Math.round(totals.writing / daysCount),
-    interaction_score: Math.round(totals.interaction / daysCount),
-  };
+  // إنشاء التقرير بحساب متوسط كل فئة
+  const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
+    rep[`${key}_score`] = Math.round(totals[key] / daysCount);
+    return rep;
+  }, {});
 
-  report.total_score = 
-    report.homework_score + report.grammar_score + report.vocabulary_score +
-    report.memorization_score + report.attendance_score + 
-    report.writing_score + report.interaction_score;
-
-  report.percentage = Math.round((report.total_score / 100) * 100);
+  // حساب الإجمالي الكلي والنسبة المئوية
+  report.total_score = Object.values(report).reduce((sum, score) => sum + score, 0);
+  report.percentage = Math.round((report.total_score / calculateMaxTotalScore()) * 100);
 
   return report;
 };

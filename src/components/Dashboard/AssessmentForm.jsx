@@ -10,6 +10,7 @@ const AssessmentForm = ({ students, selectedStudent, onSaveAssessment }) => {
     memorization_score: 0,
     writing_score: 0,
     homework_score: 0,
+    quiz_score: 0,
     interaction_score: 0,
     attendance_score: 0,
     teacher_notes: ''
@@ -118,6 +119,7 @@ function getCurrentWeek() {
           { name: 'memorization_score', label: 'التسميع (15%)', max: 15 },
           { name: 'writing_score', label: 'الكتابة (15%)', max: 15 },
           { name: 'homework_score', label: 'الواجب (15%)', max: 15 },
+          { name: 'quiz_score', label: 'الاختبارات القصيرة (10%)', max: 10 },
           { name: 'interaction_score', label: 'التفاعل (10%)', max: 10 },
           { name: 'attendance_score', label: 'الحضور (15%)', max: 15 }
         ].map(({ name, label, max }) => (

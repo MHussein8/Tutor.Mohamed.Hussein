@@ -1,5 +1,6 @@
 // WeeklyReportPage.jsx
 import React, { useState, useEffect } from 'react';
+import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { getStudents, getWeeklyReport } from '../services/teacherService';
 import Sidebar from '../components/Sidebar';
 import '../styles/WeeklyReport.css';
@@ -13,12 +14,14 @@ const WeeklyReportPage = () => {
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 992);
 
-  function getCurrentWeek() {
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() - 1);
-    return startOfWeek.toISOString().split('T')[0];
-  }
+function getCurrentWeek() {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = الأحد, 6 = السبت
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - ((dayOfWeek + 1) % 7)); // تعديل بسيط
+  startOfWeek.setHours(0, 0, 0, 0);
+  return startOfWeek.toISOString().split('T')[0];
+}
 
   useEffect(() => {
     fetchStudents();
@@ -119,7 +122,7 @@ const WeeklyReportPage = () => {
                     onChange={(e) => {
                       const selectedDate = new Date(e.target.value);
                       const saturdayDate = new Date(selectedDate);
-                      saturdayDate.setDate(selectedDate.getDate() - selectedDate.getDay() - 1);
+                      saturdayDate.setDate(selectedDate.getDate() - (selectedDate.getDay() + 1) % 7);
                       setSelectedWeek(saturdayDate.toISOString().split('T')[0]);
                     }}
                   />
@@ -152,7 +155,7 @@ const WeeklyReportPage = () => {
                 <div className="performance-summary improved-summary">
                   <div className="summary-item total-score">
                     <span>المجموع الكلي</span>
-                    <span className="score-value">{report.total_score}/100</span>
+                    <span className="score-value">{report.total_score}/{calculateMaxTotalScore()}</span>
                   </div>
                   <div className="summary-item percentage-score">
                     <span>النسبة المئوية</span>
@@ -161,98 +164,31 @@ const WeeklyReportPage = () => {
                 </div>
               </div>
               
-              <div className="report-grid improved-grid">
-                <div className="report-item improved-item">
-                  <span className="item-label">الواجب المنزلي</span>
-                  <div className="score-container">
-                    <span className="score">{report.homework_score}/20</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.homework_score/20)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="report-item improved-item">
-                  <span className="item-label">القواعد</span>
-                  <div className="score-container">
-                    <span className="score">{report.grammar_score}/15</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.grammar_score/15)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="report-item improved-item">
-                  <span className="item-label">المفردات</span>
-                  <div className="score-container">
-                    <span className="score">{report.vocabulary_score}/15</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.vocabulary_score/15)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="report-item improved-item">
-                  <span className="item-label">التسميع</span>
-                  <div className="score-container">
-                    <span className="score">{report.memorization_score}/15</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.memorization_score/15)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="report-item improved-item">
-                  <span className="item-label">الحضور</span>
-                  <div className="score-container">
-                    <span className="score">{report.attendance_score}/15</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.attendance_score/15)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="report-item improved-item">
-                  <span className="item-label">الكتابة</span>
-                  <div className="score-container">
-                    <span className="score">{report.writing_score}/10</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.writing_score/10)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="report-item improved-item">
-                  <span className="item-label">التفاعل</span>
-                  <div className="score-container">
-                    <span className="score">{report.interaction_score}/10</span>
-                    <div className="score-bar">
-                      <div 
-                        className="score-progress" 
-                        style={{width: `${(report.interaction_score/10)*100}%`}}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+<div className="report-grid">
+  {Object.keys(MAX_SCORES).map((key) => (
+    <div key={key} className="report-item improved-item">
+      <span className="item-label">
+        {key === 'homework' ? 'الواجب المنزلي' :
+         key === 'grammar' ? 'القواعد النحوية' :
+         key === 'vocabulary' ? 'المفردات' :
+         key === 'memorization' ? 'الحفظ' :
+         key === 'quiz' ? 'الاختبارات القصيرة' :
+         key === 'attendance' ? 'الحضور' :
+         key === 'writing' ? 'الكتابة' :
+         key === 'interaction' ? 'التفاعل' : key}
+      </span>
+      <div className="score-container">
+        <span className="score">{report[`${key}_score`]}/{MAX_SCORES[key]}</span>
+        <div className="score-bar">
+          <div
+            className="score-progress"
+            style={{ width: `${(report[`${key}_score`] / MAX_SCORES[key]) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
             </div>
           )}
         </div>

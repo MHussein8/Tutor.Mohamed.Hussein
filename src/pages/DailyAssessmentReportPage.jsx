@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { supabase } from '../services/supabase';
+import { parentMessageService } from '../services/parentMessageService';
 import Sidebar from '../components/Sidebar';
 import '../styles/TeacherDashboard.css';
 import '../styles/DailyAssessmentReportPage.css';
@@ -26,42 +28,38 @@ const DailyAssessmentReportPage = () => {
     });
   }, []);
 
-  const calculateStats = useCallback((assessments) => {
-    if (!assessments || assessments.length === 0) {
-      resetStats();
-      return;
-    }
+const calculateStats = useCallback((assessments) => {
+  if (!assessments || assessments.length === 0) {
+    resetStats();
+    return;
+  }
 
-    const totals = assessments.map(assessment => {
-      return assessment.homework_score + 
-             assessment.grammar_score + 
-             assessment.vocabulary_score + 
-             assessment.memorization_score +
-             assessment.writing_score +
-             assessment.interaction_score +
-             assessment.attendance_score;
-    });
+  const totals = assessments.map(assessment => {
+    return Object.keys(MAX_SCORES).reduce((sum, key) => {
+      return sum + (assessment[`${key}_score`] || 0);
+    }, 0);
+  });
 
-    const total = totals.reduce((sum, score) => sum + score, 0);
-    const average = Math.round(total / totals.length);
-    const max = Math.max(...totals);
-    const min = Math.min(...totals);
+  const total = totals.reduce((sum, score) => sum + score, 0);
+  const average = Math.round(total / totals.length);
+  const max = Math.max(...totals);
+  const min = Math.min(...totals);
 
-    setStats({
-      totalStudents: assessments.length,
-      averageScore: average,
-      maxScore: max,
-      minScore: min
-    });
-  }, [resetStats]); // أضفنا resetStats هنا
+  setStats({
+    totalStudents: assessments.length,
+    averageScore: average,
+    maxScore: max,
+    minScore: min
+  });
+}, [resetStats]);
 
   const fetchLessons = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, created_at')
-        .order('created_at', { ascending: false }); 
-      
+        .select('id, title, lesson_date')
+        .order('lesson_date', { ascending: false });
+
       if (error) throw error;
       setLessons(data);
     } catch (error) {
@@ -154,7 +152,7 @@ const DailyAssessmentReportPage = () => {
                 <option value="">-- اختر حصة --</option>
                 {lessons.map(lesson => (
                   <option key={lesson.id} value={lesson.id}>
-                    {new Date(lesson.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })} - {lesson.title}
+                    {new Date(lesson.lesson_date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })} - {lesson.title}
                   </option>
                 ))}
               </select>
@@ -164,7 +162,7 @@ const DailyAssessmentReportPage = () => {
           {selectedLesson && (
             <div className="lesson-summary-info improved-summary">
               <h2>تفاصيل الحصة: {selectedLesson.title}</h2>
-              <p>تاريخ الحصة: {new Date(selectedLesson.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p>تاريخ الحصة: {new Date(selectedLesson.lesson_date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               
               {dailyAssessments.length > 0 && (
                 <div className="stats-grid">
@@ -239,78 +237,28 @@ const DailyAssessmentReportPage = () => {
                         </span>
                       </div>
                       <div className="card-body improved-card-body">
-                        <div className="scores-container">
-                          <div className="score-item improved">
-                            <span className="score-label">الواجب</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.homework_score/20)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.homework_score}/20</span>
-                          </div>
-                          <div className="score-item improved">
-                            <span className="score-label">القواعد</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.grammar_score/15)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.grammar_score}/15</span>
-                          </div>
-                          <div className="score-item improved">
-                            <span className="score-label">المفردات</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.vocabulary_score/15)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.vocabulary_score}/15</span>
-                          </div>
-                          <div className="score-item improved">
-                            <span className="score-label">التسميع</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.memorization_score/15)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.memorization_score}/15</span>
-                          </div>
-                          <div className="score-item improved">
-                            <span className="score-label">الكتابة</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.writing_score/10)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.writing_score}/10</span>
-                          </div>
-                          <div className="score-item improved">
-                            <span className="score-label">التفاعل</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.interaction_score/10)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.interaction_score}/10</span>
-                          </div>
-                          <div className="score-item improved">
-                            <span className="score-label">الحضور</span>
-                            <div className="score-bar-container">
-                              <div 
-                                className="score-bar" 
-                                style={{width: `${(assessment.attendance_score/15)*100}%`}}
-                              ></div>
-                            </div>
-                            <span className="score-value">{assessment.attendance_score}/15</span>
-                          </div>
-                        </div>
+<div className="scores-grid improved-grid">
+  {Object.keys(MAX_SCORES).map((key) => (
+    <div key={key} className="score-item improved">
+      <span className="score-label">
+        {key === 'homework' ? 'الواجب' :
+         key === 'grammar' ? 'القواعد' :
+         key === 'vocabulary' ? 'المفردات' :
+         key === 'memorization' ? 'التسميع' :
+         key === 'attendance' ? 'الحضور' :
+         key === 'writing' ? 'الكتابة' :
+         key === 'interaction' ? 'التفاعل' : key}
+      </span>
+      <div className="score-bar-container">
+        <div 
+          className="score-bar" 
+          style={{width: `${(assessment[`${key}_score`] / MAX_SCORES[key]) * 100}%`}}
+        ></div>
+      </div>
+      <span className="score-value">{assessment[`${key}_score`]}/{MAX_SCORES[key]}</span>
+    </div>
+  ))}
+</div>
                       </div>
                     </div>
                   );

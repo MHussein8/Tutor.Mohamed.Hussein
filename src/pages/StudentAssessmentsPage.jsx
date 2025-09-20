@@ -1,6 +1,7 @@
 // src/pages/StudentAssessmentsPage.jsx
 
 import React, { useState, useEffect } from 'react';
+import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import Sidebar from '../components/Sidebar';
@@ -41,10 +42,10 @@ const StudentAssessmentsPage = () => {
           .from('daily_assessments')
           .select(`
             *,
-            lessons (title, created_at)
+            lessons (title, lesson_date)
           `)
           .eq('student_id', studentId)
-          .order('created_at', { ascending: false });
+          .order('lesson_date', { ascending: false });
 
         if (assessmentsError) throw assessmentsError;
         setAssessments(assessmentsData);
@@ -90,54 +91,36 @@ const StudentAssessmentsPage = () => {
           ) : assessments.length > 0 ? (
             <div className="assessments-grid">
               {assessments.map(assessment => {
-                const totalScore = assessment.homework_score + 
-                                   assessment.grammar_score + 
-                                   assessment.vocabulary_score + 
-                                   assessment.memorization_score +
-                                   assessment.writing_score +
-                                   assessment.interaction_score +
-                                   assessment.attendance_score;
+const totalScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
+  return sum + (assessment[`${key}_score`] || 0);
+}, 0);
                 return (
                   <div className="assessment-card" key={assessment.id}>
                     <div className="card-header">
                       <span className="student-name-header">
                         {assessment.lessons.title}
                       </span>
-                      <span className="total-score-header">المجموع: {totalScore}</span>
+                      <span className="total-score-header">المجموع: {totalScore}/{calculateMaxTotalScore()}</span>
                     </div>
                     <div className="card-body">
-                      <div className="score-item">
-                        <span className="score-label">الواجب:</span>
-                        <span className="score-value">{assessment.homework_score}</span>
-                      </div>
-                      <div className="score-item">
-                        <span className="score-label">القواعد:</span>
-                        <span className="score-value">{assessment.grammar_score}</span>
-                      </div>
-                      <div className="score-item">
-                        <span className="score-label">المفردات:</span>
-                        <span className="score-value">{assessment.vocabulary_score}</span>
-                      </div>
-                      <div className="score-item">
-                        <span className="score-label">التسميع:</span>
-                        <span className="score-value">{assessment.memorization_score}</span>
-                      </div>
-                      <div className="score-item">
-                        <span className="score-label">الكتابة:</span>
-                        <span className="score-value">{assessment.writing_score}</span>
-                      </div>
-                      <div className="score-item">
-                        <span className="score-label">التفاعل:</span>
-                        <span className="score-value">{assessment.interaction_score}</span>
-                      </div>
-                      <div className="score-item">
-                        <span className="score-label">الحضور:</span>
-                        <span className="score-value">{assessment.attendance_score}</span>
-                      </div>
+{Object.keys(MAX_SCORES).map((key) => (
+  <div key={key} className="score-item">
+    <span className="score-label">
+      {key === 'homework' ? 'الواجب' :
+       key === 'grammar' ? 'القواعد' :
+       key === 'vocabulary' ? 'المفردات' :
+       key === 'memorization' ? 'التسميع' :
+       key === 'attendance' ? 'الحضور' :
+       key === 'writing' ? 'الكتابة' :
+       key === 'interaction' ? 'التفاعل' : key}:
+    </span>
+    <span className="score-value">{assessment[`${key}_score`]}/{MAX_SCORES[key]}</span>
+  </div>
+))}
                     </div>
                     <div className="card-footer">
                       <span className="assessment-date">
-                        التاريخ: {new Date(assessment.lessons.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        التاريخ: {new Date(assessment.lessons.lesson_date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
                       </span>
                     </div>
                   </div>

@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { parentService } from '../services/parentService';
+import parentMessageService from '../services/parentMessageService';
 import ParentStatsGrid from '../components/ParentDashboard/ParentStatsGrid';
 import StudentProgressChart from '../components/ParentDashboard/StudentProgressChart';
+import ParentMessageForm from '../components/ParentDashboard/ParentMessageForm';
+import AddStudentToParentModal from '../components/ParentDashboard/AddStudentToParentModal';
 import '../styles/ParentDashboard.css';
+import '../styles/ParentDashboardMessages.css';
 
 // دالة مساعدة للحصول على الأسبوع الحالي
 const getCurrentWeek = () => {
   const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = الأحد, 6 = السبت
   const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() - 1);
+  startOfWeek.setDate(today.getDate() - (dayOfWeek + 1) % 7); // الرجوع للسبت
+  startOfWeek.setHours(0, 0, 0, 0);
   return startOfWeek.toISOString().split('T')[0];
 };
 
@@ -30,12 +37,34 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
     performanceAverage: 0,
     completedLessons: 0,
     teacherNotes: 0,
-    attendanceRate: 0
+    progressPercentage: 0
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sentMessages, setSentMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
-  const loadStudentData = useCallback(async (studentId) => {
+  // دالة لجلب الرسائل المرسلة من ولي الأمر
+  const fetchSentMessages = useCallback(async () => {
+    if (!parentId) {
+      console.error('Parent ID is not available.');
+      return;
+    }
+    setLoadingMessages(true);
+    try {
+      const messages = await parentMessageService.getSentMessages(parentId);
+      setSentMessages(messages);
+    } catch (error) {
+      console.error('Error fetching sent messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [parentId]);
+  const [messageSending, setMessageSending] = useState(false);
+  const [mostImprovedSkill, setMostImprovedSkill] = useState(null);
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+
+const loadStudentData = useCallback(async (studentId) => {
   try {
     const [dailyData] = await Promise.all([
       parentService.getDailyAssessments(studentId),
@@ -43,6 +72,8 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
     ]);
 
     setDailyAssessments(dailyData);
+    const improvedSkillData = await parentService.getMostImprovedSkill(studentId);
+setMostImprovedSkill(improvedSkillData);
 
     const totalScore = dailyData.reduce((sum, assessment) => {
       return sum + (
@@ -57,18 +88,11 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
     }, 0);
 
     const averagePerformance = dailyData.length > 0
-      ? Math.round((totalScore / (dailyData.length * 100)) * 100)
+      ? Math.round((totalScore / (dailyData.length * calculateMaxTotalScore())) * 100)
       : 0;
 
-    const totalAttendanceScore = dailyData.reduce((sum, assessment) => {
-      return sum + (assessment.attendance_score || 0);
-    }, 0);
+const progressPercentage = await calculateProgress(studentId);
 
-    const maxPossibleAttendanceScore = dailyData.length * 15;
-
-    const attendanceRate = maxPossibleAttendanceScore > 0
-      ? Math.round((totalAttendanceScore / maxPossibleAttendanceScore) * 100)
-      : 0;
 
     const teacherNotesCount = dailyData.filter(assessment =>
       assessment.teacher_notes && assessment.teacher_notes.trim() !== ''
@@ -78,10 +102,39 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
       performanceAverage: averagePerformance,
       completedLessons: dailyData.length,
       teacherNotes: teacherNotesCount,
-      attendanceRate: attendanceRate
+      progressPercentage: progressPercentage || 0
     });
   } catch (error) {
     console.error('Error loading student data:', error);
+  }
+}, []);
+
+// دالة حساب نسبة التقدم
+const calculateProgress = useCallback(async (studentId) => {
+  try {
+    const lastTwoAssessments = await parentService.getLastTwoAssessments(studentId);
+    
+    if (lastTwoAssessments.length < 2) {
+      return 0;  // لا يوجد بيانات كافية
+    }
+
+    const [current, previous] = lastTwoAssessments;
+    
+    // حساب الأداء لكل تقييم
+    const currentPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => {
+      return sum + (current[key] || 0);
+    }, 0);
+
+    const previousPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => {
+      return sum + (previous[key] || 0);
+    }, 0);
+
+    // حساب نسبة التقدم
+    const progress = ((currentPerformance - previousPerformance) / calculateMaxTotalScore()) * 100;
+    return Math.round(progress);
+  } catch (error) {
+    console.error('Error calculating progress:', error);
+    return 0;
   }
 }, []);
 
@@ -106,11 +159,47 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
     loadParentData();
   }, [loadParentData]);
 
+    useEffect(() => {
+    // جلب الرسائل فقط عندما يكون التبويب النشط هو "messages"
+    if (activeTab === 'messages') {
+      fetchSentMessages();
+    }
+  }, [activeTab, fetchSentMessages]);
+  
   useEffect(() => {
     if (selectedStudent) {
       loadWeeklyReport(selectedStudent, selectedWeek);
+      loadParentMessages(selectedStudent);
     }
   }, [selectedStudent, selectedWeek]);
+  
+  const loadParentMessages = async (studentId) => {
+    try {
+      // استدعاء API لجلب الرسائل السابقة
+      const messages = await parentMessageService.getParentMessages(studentId, parentId);
+      setSentMessages(messages);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+  
+  const handleSendMessage = async (messageData) => {
+    try {
+      setMessageSending(true);
+      // إرسال الرسالة إلى قاعدة البيانات باستخدام خدمة الرسائل
+      const result = await parentMessageService.sendParentMessage(messageData);
+      
+      // إضافة الرسالة المرسلة إلى قائمة الرسائل المعروضة
+      setSentMessages(prev => [result, ...prev]);
+      
+      return result;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    } finally {
+      setMessageSending(false);
+    }
+  };
 
   const loadWeeklyReport = async (studentId, weekDate) => {
     try {
@@ -184,6 +273,13 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
         {/* الحاوية الجديدة لرسالة الترحيب ومستطيل اختيار الطالب */}
         <div className="header-bottom-bar-new">
           <span className="welcome-message-new">مرحباً، {parentUser?.name}</span>
+          <button 
+  className="add-student-btn-new"
+  onClick={() => setIsAddStudentModalOpen(true)}
+>
+  <i className="fas fa-plus"></i>
+  إضافة طالب
+</button>
           <div className="student-selector-new">
             <div className="selector-wrapper-new">
               <i className="icon-student">👨‍🎓</i>
@@ -232,11 +328,22 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
           <i className="tab-icon">📋</i>
           <span>ملاحظات المعلم</span>
         </button>
+        <button
+          className={`tab-btn-new ${activeTab === 'messages' ? 'active' : ''}`}
+          onClick={() => setActiveTab('messages')}
+        >
+          <i className="tab-icon">✉️</i>
+          <span>رسائل للمعلم</span>
+        </button>
       </div>
       <div className="dashboard-content-new">
         {activeTab === 'overview' && (
           <>
-            <ParentStatsGrid stats={stats} colors={cardColors} />
+            <ParentStatsGrid 
+  stats={stats} 
+  colors={cardColors} 
+  mostImprovedSkill={mostImprovedSkill} 
+/>
             <div className="content-grid-new">
               <div className="main-section-new">
                 <div className="chart-card-new">
@@ -252,6 +359,10 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
                       <span className="stat-label-new">متوسط الأداء</span>
                       <span className="stat-value-new">{stats.performanceAverage}%</span>
                     </div>
+                    <div className="stat-item-new">
+  <span className="stat-label-new">نسبة التقدم</span>
+  <span className="stat-value-new">{stats.progressPercentage}%</span>
+</div>
                     <div className="stat-item-new">
                       <span className="stat-label-new">عدد الحصص</span>
                       <span className="stat-value-new">{stats.completedLessons}</span>
@@ -373,6 +484,17 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
                       </div>
                     </div>
                     <div className="score-item-new">
+  <span>الاختبارات القصيرة</span>
+  <div className="score-bar-new">
+    <div
+      className="score-progress-new"
+      style={{width: `${(assessment.quiz_score || 0)/10*100}%`,
+              background: getScoreColor(assessment.quiz_score || 0, 10)}}
+    ></div>
+    <span className="score-new">{assessment.quiz_score}/10</span>
+  </div>
+</div>
+                    <div className="score-item-new">
                       <span>الحضور</span>
                       <div className="score-bar-new">
                         <div
@@ -429,105 +551,37 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
                 <div className="report-summary-new">
                   <div className="total-score-card-new">
                     <h3>المجموع الكلي</h3>
-                    <div className="score-new-large">{weeklyReport.total_score}/100</div>
+                    <div className="score-new-large">{weeklyReport.total_score}/{calculateMaxTotalScore()}</div>
                     <div className="percentage-new">{weeklyReport.percentage}%</div>
                   </div>
                 </div>
                 <div className="detailed-scores-new">
                   <h3>التفاصيل</h3>
-                  <div className="scores-grid-detailed-new">
-                    <div className="score-item-detailed-new">
-                      <span className="score-label-new">الواجب المنزلي</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.homework_score}/20</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.homework_score/20)*100}%`,
-                                    background: getScoreColor(weeklyReport.homework_score, 20)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="score-item-detailed-new">
-                      <span className="score-label-new">القواعد</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.grammar_score}/15</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.grammar_score/15)*100}%`,
-                                    background: getScoreColor(weeklyReport.grammar_score, 15)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="score-item-detailed-new">
-                      <span>المفردات</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.vocabulary_score}/15</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.vocabulary_score/15)*100}%`,
-                                    background: getScoreColor(weeklyReport.vocabulary_score, 15)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="score-item-detailed-new">
-                      <span className="score-label-new">التسميع</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.memorization_score}/15</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.memorization_score/15)*100}%`,
-                                    background: getScoreColor(weeklyReport.memorization_score, 15)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="score-item-detailed-new">
-                      <span className="score-label-new">الحضور</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.attendance_score}/15</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.attendance_score/15)*100}%`,
-                                    background: getScoreColor(weeklyReport.attendance_score, 15)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="score-item-detailed-new">
-                      <span className="score-label-new">الكتابة</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.writing_score}/10</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.writing_score/10)*100}%`,
-                                    background: getScoreColor(weeklyReport.writing_score, 10)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="score-item-detailed-new">
-                      <span className="score-label-new">التفاعل</span>
-                      <div className="score-container-detailed-new">
-                        <span className="score-value-new">{weeklyReport.interaction_score}/10</span>
-                        <div className="score-bar-detailed-new">
-                          <div
-                            className="score-progress-detailed-new"
-                            style={{width: `${(weeklyReport.interaction_score/10)*100}%`,
-                                    background: getScoreColor(weeklyReport.interaction_score, 10)}}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+<div className="scores-grid-detailed-new">
+  {Object.keys(MAX_SCORES).map((key) => (
+    <div key={key} className="score-item-detailed-new">
+      <span className="score-label-new">
+        {key === 'homework' ? 'الواجب المنزلي' :
+         key === 'grammar' ? 'القواعد' :
+         key === 'vocabulary' ? 'المفردات' :
+         key === 'memorization' ? 'التسميع' :
+         key === 'attendance' ? 'الحضور' :
+         key === 'writing' ? 'الكتابة' :
+         key === 'interaction' ? 'التفاعل' : key}
+      </span>
+      <div className="score-container-detailed-new">
+        <span className="score-value-new">{weeklyReport[`${key}_score`]}/{MAX_SCORES[key]}</span>
+        <div className="score-bar-detailed-new">
+          <div
+            className="score-progress-detailed-new"
+            style={{ width: `${(weeklyReport[`${key}_score`] / MAX_SCORES[key]) * 100}%`,
+                    background: getScoreColor(weeklyReport[`${key}_score`], MAX_SCORES[key]) }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
                 </div>
                 {weeklyReport.teacher_notes && (
                   <div className="teacher-notes-new">
@@ -573,7 +627,90 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
             </div>
           </div>
         )}
+        {activeTab === 'messages' && (
+          <div className="messages-tab-new">
+            <div className="tab-header-new">
+              <h2>رسائل للمعلم</h2>
+              <p>يمكنك إرسال رسائل واستفسارات للمعلم بخصوص الطالب</p>
+            </div>
+            
+            <ParentMessageForm 
+              onSendMessage={handleSendMessage} 
+              parentId={parentId} 
+              studentId={selectedStudent}
+              teacherId={1} // يمكن تعديل هذا لاحقًا ليكون معلم الطالب الفعلي
+            />
+            
+            <div className="sent-messages-container">
+              <h3 className="sent-messages-title">
+                <i className="messages-icon">📨</i>
+                الرسائل المرسلة
+              </h3>
+              
+              <div className="messages-list">
+                {sentMessages.length > 0 ? (
+                  sentMessages.map((msg, index) => (
+                    <div key={index} className="message-item">
+                      <div className="message-header">
+                        <span className="message-topic">
+                          {msg.topic === 'general' && 'استفسار عام'}
+                          {msg.topic === 'academic' && 'استفسار أكاديمي'}
+                          {msg.topic === 'attendance' && 'استفسار عن الحضور'}
+                          {msg.topic === 'homework' && 'استفسار عن الواجبات'}
+                          {msg.topic === 'feedback' && 'تقديم ملاحظات'}
+                          {msg.topic === 'other' && 'أخرى'}
+                        </span>
+                        <span className="message-date">
+                          {new Date(msg.payload?.timestamp || msg.created_at).toLocaleDateString('ar-EG')}
+                        </span>
+                      </div>
+                      <div className="message-content">
+                        <p>{msg.message_text}</p>
+                      </div>
+                                    {/* ✅ إضافة هذا الجزء الجديد لعرض رد المعلم */}
+              {msg.teacher_reply && (
+                <div className="teacher-reply-content">
+                  <div className="reply-header">
+                    <span>رد المعلم</span>
+                    <span className="reply-date">
+                       {new Date(msg.reply_timestamp).toLocaleDateString('ar-EG')}
+                    </span>
+                  </div>
+                  <p>{msg.teacher_reply}</p>
+                </div>
+              )}
+                      <div className="message-footer">
+                        <span className={`message-status ${msg.is_anonymous ? 'anonymous' : ''}`}>
+                          {msg.is_anonymous ? 'تم الإرسال بدون اسم' : 'تم الإرسال باسمك'}
+                        </span>
+                        <span className="message-read-status">
+                          {msg.teacher_read ? 'تمت القراءة ✓' : 'لم تتم القراءة بعد'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-messages">
+                    <div className="no-messages-icon">📭</div>
+                    <p>لم تقم بإرسال أي رسائل بعد</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+      {isAddStudentModalOpen && (
+  <AddStudentToParentModal
+    isOpen={isAddStudentModalOpen}
+    onClose={() => setIsAddStudentModalOpen(false)}
+    parentId={parentId}
+    onStudentAdded={() => {
+      loadParentData(); // إعادة تحميل بيانات ولي الأمر
+      setIsAddStudentModalOpen(false);
+    }}
+  />
+)}
     </div>
   );
 };

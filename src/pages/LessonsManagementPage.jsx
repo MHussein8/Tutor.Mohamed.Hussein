@@ -26,7 +26,7 @@ const LessonsManagementPage = () => {
           id,
           title,
           content,
-          created_at,
+          lesson_date,
           start_time,
           end_time,
           education_type_id,
@@ -34,7 +34,7 @@ const LessonsManagementPage = () => {
           group_types (name),
           grade_levels (name)
         `)
-        .order('created_at', { ascending: false });
+        .order('lesson_date', { ascending: false });
 
       if (error) throw error;
       setLessons(data || []);
@@ -80,7 +80,7 @@ const LessonsManagementPage = () => {
 
   const totalLessons = lessons.length;
   const weeklyLessons = lessons.filter(lesson => {
-    const lessonDate = new Date(lesson.created_at);
+    const lessonDate = new Date(lesson.lesson_date);
     const now = new Date();
     const startOfWeek = new Date(now);
     const dayOfWeek = now.getDay();
@@ -90,7 +90,7 @@ const LessonsManagementPage = () => {
     return lessonDate >= startOfWeek;
   }).length;
   const todayLessons = lessons.filter(lesson => {
-    const lessonDate = new Date(lesson.created_at);
+    const lessonDate = new Date(lesson.lesson_date);
     const today = new Date();
     return lessonDate.toDateString() === today.toDateString();
   }).length;
@@ -192,7 +192,7 @@ const LessonsManagementPage = () => {
                         <td data-label="المحتوى">{lesson.content || 'لا يوجد'}</td>
                         <td data-label="نوع التعليم">{lesson.group_types?.name || 'غير معروف'}</td>
                         <td data-label="المستوى">{lesson.grade_levels?.name || 'غير معروف'}</td>
-                        <td data-label="التاريخ">{formatDate(lesson.created_at)}</td>
+                        <td data-label="التاريخ">{formatDate(lesson.lesson_date)}</td>
                         <td data-label="الوقت">{`${lesson.start_time.slice(0, 5)} - ${lesson.end_time.slice(0, 5)}`}</td>
                         <td data-label="الإجراءات">
                           <div className="lesson-actions">
