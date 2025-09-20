@@ -204,7 +204,7 @@ Object.keys(scores).forEach(key => {
       setLoading(false);
     }
   };
-
+// eslint-disable-next-line no-unused-vars
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   const formatGregorianDate = (dateString) => {

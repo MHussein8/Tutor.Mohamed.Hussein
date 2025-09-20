@@ -79,16 +79,27 @@ const LessonsManagementPage = () => {
   );
 
   const totalLessons = lessons.length;
-  const weeklyLessons = lessons.filter(lesson => {
-    const lessonDate = new Date(lesson.lesson_date);
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    const dayOfWeek = now.getDay();
-    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek + 1;
-    startOfWeek.setDate(now.getDate() - daysToSubtract);
-    startOfWeek.setHours(0, 0, 0, 0);
-    return lessonDate >= startOfWeek;
-  }).length;
+const weeklyLessons = lessons.filter(lesson => {
+  const lessonDate = new Date(lesson.lesson_date);
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  
+  // احسب فرق الأيام بين اليوم والسبت
+  const dayOfWeek = today.getDay(); // 0-6 (الأحد-السبت)
+  const daysToSaturday = dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
+  
+  // اذهب لبداية الأسبوع (السبت)
+  startOfWeek.setDate(today.getDate() - daysToSaturday);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  // اذهب لنهاية الأسبوع (الجمعة)
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+  
+  // تحقق إذا كان تاريخ الحصة بين السبت والجمعة
+  return lessonDate >= startOfWeek && lessonDate <= endOfWeek;
+}).length;
   const todayLessons = lessons.filter(lesson => {
     const lessonDate = new Date(lesson.lesson_date);
     const today = new Date();

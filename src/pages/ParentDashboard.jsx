@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useCallback } from 'react';
 import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { parentService } from '../services/parentService';
@@ -42,27 +43,42 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [sentMessages, setSentMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
 
   // دالة لجلب الرسائل المرسلة من ولي الأمر
-  const fetchSentMessages = useCallback(async () => {
-    if (!parentId) {
-      console.error('Parent ID is not available.');
-      return;
-    }
-    setLoadingMessages(true);
-    try {
-      const messages = await parentMessageService.getSentMessages(parentId);
-      setSentMessages(messages);
-    } catch (error) {
-      console.error('Error fetching sent messages:', error);
-    } finally {
-      setLoadingMessages(false);
-    }
-  }, [parentId]);
-  const [messageSending, setMessageSending] = useState(false);
+const fetchSentMessages = useCallback(async () => {
+  if (!parentId) {
+    console.error('Parent ID is not available.');
+    return;
+  }
+  try {
+    const messages = await parentMessageService.getSentMessages(parentId);
+    setSentMessages(messages);
+  } catch (error) {
+    console.error('Error fetching sent messages:', error);
+  }
+}, [parentId]);
+  const [setMessageSending] = useState(false);
   const [mostImprovedSkill, setMostImprovedSkill] = useState(null);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+
+  // دالة حساب نسبة التقدم (مش useCallback)
+const calculateProgress = async (studentId) => {
+  try {
+    const lastTwoAssessments = await parentService.getLastTwoAssessments(studentId);
+    if (lastTwoAssessments.length < 2) return 0;
+
+    const [current, previous] = lastTwoAssessments;
+
+    const currentPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => sum + (current[key] || 0), 0);
+    const previousPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => sum + (previous[key] || 0), 0);
+
+    const progress = ((currentPerformance - previousPerformance) / calculateMaxTotalScore()) * 100;
+    return Math.round(progress);
+  } catch (error) {
+    console.error('Error calculating progress:', error);
+    return 0;
+  }
+};
 
 const loadStudentData = useCallback(async (studentId) => {
   try {
@@ -109,34 +125,8 @@ const progressPercentage = await calculateProgress(studentId);
   }
 }, []);
 
-// دالة حساب نسبة التقدم
-const calculateProgress = useCallback(async (studentId) => {
-  try {
-    const lastTwoAssessments = await parentService.getLastTwoAssessments(studentId);
-    
-    if (lastTwoAssessments.length < 2) {
-      return 0;  // لا يوجد بيانات كافية
-    }
 
-    const [current, previous] = lastTwoAssessments;
-    
-    // حساب الأداء لكل تقييم
-    const currentPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => {
-      return sum + (current[key] || 0);
-    }, 0);
 
-    const previousPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => {
-      return sum + (previous[key] || 0);
-    }, 0);
-
-    // حساب نسبة التقدم
-    const progress = ((currentPerformance - previousPerformance) / calculateMaxTotalScore()) * 100;
-    return Math.round(progress);
-  } catch (error) {
-    console.error('Error calculating progress:', error);
-    return 0;
-  }
-}, []);
 
   const loadParentData = useCallback(async () => {
     try {
@@ -165,6 +155,7 @@ const calculateProgress = useCallback(async (studentId) => {
       fetchSentMessages();
     }
   }, [activeTab, fetchSentMessages]);
+  
   
   useEffect(() => {
     if (selectedStudent) {

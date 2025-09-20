@@ -12,14 +12,45 @@ const StudentsPage = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterGroupType, setFilterGroupType] = useState('');
+const [filterGradeLevel, setFilterGradeLevel] = useState('');
+const [groupTypes, setGroupTypes] = useState([]);
+const [gradeLevels, setGradeLevels] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddParentModalOpen, setIsAddParentModalOpen] = useState(false);
 
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+useEffect(() => {
+  fetchStudents();
+}, []);
+
+useEffect(() => {
+  if (students.length > 0) {
+    fetchFilterOptions();
+  }
+}, [students]); // استنى students يتحمل أولاً
+
+const fetchFilterOptions = async () => {
+  try {
+    // جلب أنواع المجموعات
+    const { data: groupTypesData } = await supabase
+      .from('group_types')
+      .select('*')
+      .order('name');
+    
+    // جلب المستويات الدراسية
+    const { data: gradeLevelsData } = await supabase
+      .from('grade_levels')
+      .select('*')
+      .order('name');
+    
+    setGroupTypes(groupTypesData || []);
+    setGradeLevels(gradeLevelsData || []);
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+  }
+};
 
   useEffect(() => {
     const handleResize = () => {
@@ -94,9 +125,22 @@ const StudentsPage = () => {
     return average.toFixed(1);
   };
 
-  const filteredStudents = students.filter(student =>
-    (student.first_name + ' ' + student.last_name).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+const filteredStudents = students.filter(student => {
+  // فلتر البحث بالاسم
+  const nameMatch = `${student.first_name} ${student.last_name}`
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase());
+  
+  // فلتر نوع التعليم
+  const groupTypeMatch = filterGroupType === '' || 
+    student.group_types?.name === filterGroupType;
+  
+  // فلتر الصف الدراسي
+  const gradeLevelMatch = filterGradeLevel === '' || 
+    student.grade_levels?.name === filterGradeLevel;
+  
+  return nameMatch && groupTypeMatch && gradeLevelMatch;
+});
 
   return (
     <div className="dashboard-layout">
@@ -127,14 +171,60 @@ const StudentsPage = () => {
             </div>
           </div>
           
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="ابحث عن طالب..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+<div className="filters-container">
+  <div className="filter-group">
+    <div className="search-box">
+      <input
+        type="text"
+        placeholder="ابحث باسم الطالب..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      <span>🔍</span>
+    </div>
+  </div>
+  
+  <div className="filter-group">
+    <select 
+      value={filterGroupType} 
+      onChange={(e) => setFilterGroupType(e.target.value)}
+      className="filter-select"
+    >
+      <option value="">كل أنواع التعليم</option>
+      {groupTypes.map(group => (
+        <option key={group.id} value={group.name}>
+          {group.name}
+        </option>
+      ))}
+    </select>
+  </div>
+  
+  <div className="filter-group">
+    <select 
+      value={filterGradeLevel} 
+      onChange={(e) => setFilterGradeLevel(e.target.value)}
+      className="filter-select"
+    >
+      <option value="">كل الصفوف</option>
+      {gradeLevels.map(grade => (
+        <option key={grade.id} value={grade.name}>
+          {grade.name}
+        </option>
+      ))}
+    </select>
+  </div>
+  
+  <button 
+    className="btn btn-clear-filters"
+    onClick={() => {
+      setSearchTerm('');
+      setFilterGroupType('');
+      setFilterGradeLevel('');
+    }}
+  >
+    مسح الفلاتر
+  </button>
+</div>
 
           <div className="students-list-section">
             {loading ? (

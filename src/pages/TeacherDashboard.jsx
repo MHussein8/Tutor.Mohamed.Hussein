@@ -1,7 +1,7 @@
 // TeacherDashboard.jsx
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
+import React, { useState, useEffect } from 'react';
+import { MAX_SCORES } from '../config/assessmentConfig';
 import { supabase } from '../services/supabase';
 import '../styles/TeacherDashboard.css';
 import AddStudentModal from '../components/AddStudentModal';
@@ -21,7 +21,13 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
+  const [filterGroupType, setFilterGroupType] = useState('');
+const [filterGradeLevel, setFilterGradeLevel] = useState('');
+const [groupTypes, setGroupTypes] = useState([]);
+const [gradeLevels, setGradeLevels] = useState([]);
+const [searchTerm, setSearchTerm] = useState('');
+
+
   // متغيرات حالة لقسم الرسائل
   const [activeTab, setActiveTab] = useState('dashboard');
   const [parentMessages, setParentMessages] = useState([]);
@@ -103,9 +109,26 @@ const handleReplyToMessage = async (replyData) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ar-EG');
   };
+  const filteredStudents = students.filter(student => {
+  // فلتر البحث بالاسم
+  const nameMatch = `${student.first_name} ${student.last_name}`
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase());
+  
+  // فلتر نوع التعليم
+  const groupTypeMatch = filterGroupType === '' || 
+    student.group_types?.name === filterGroupType;
+  
+  // فلتر الصف الدراسي
+  const gradeLevelMatch = filterGradeLevel === '' || 
+    student.grade_levels?.name === filterGradeLevel;
+  
+  return nameMatch && groupTypeMatch && gradeLevelMatch;
+});
 
   useEffect(() => {
     fetchDashboardData();
+    fetchFilterOptions();
   }, []);
   
 const calculateTotalScore = (assessment) => {
@@ -118,6 +141,27 @@ const calculateTotalScore = (assessment) => {
   }, 0);
 };
 
+  const fetchFilterOptions = async () => {
+    try {
+      // جلب أنواع المجموعات
+      const { data: groupTypesData } = await supabase
+        .from('group_types')
+        .select('*')
+        .order('name');
+      
+      // جلب المستويات الدراسية
+      const { data: gradeLevelsData } = await supabase
+        .from('grade_levels')
+        .select('*')
+        .order('name');
+      
+      setGroupTypes(groupTypesData || []);
+      setGradeLevels(gradeLevelsData || []);
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       const { data: studentsData, count: studentsCount } = await supabase
@@ -129,28 +173,26 @@ const calculateTotalScore = (assessment) => {
         `, { count: 'exact' })
         .order('first_name');
 
-      const today = new Date();
-      const dayOfWeek = today.getDay();
-      let daysToSubtract;
-      if (dayOfWeek === 6) {
-        daysToSubtract = 0;
-      } else {
-        daysToSubtract = dayOfWeek + 1;
-      }
+const today = new Date();
+const dayOfWeek = today.getDay(); // 0 = الأحد، 1 = الاثنين، ... 6 = السبت
 
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - daysToSubtract);
-      weekStart.setHours(0, 0, 0, 0);
+// حساب بداية الأسبوع (السبت) بشكل صحيح
+const startOfWeek = new Date(today);
+const daysSinceSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1) % 7;
+startOfWeek.setDate(today.getDate() - daysSinceSaturday);
+startOfWeek.setHours(0, 0, 0, 0);
 
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
+// حساب نهاية الأسبوع (الجمعة)
+const endOfWeek = new Date(startOfWeek);
+endOfWeek.setDate(startOfWeek.getDate() + 6); // السبت + 6 أيام = الجمعة
+endOfWeek.setHours(23, 59, 59, 999);
+
 
       const { data: dailyAssessments } = await supabase
         .from('daily_assessments')
         .select('*')
-        .gte('lesson_date', weekStart.toISOString())
-        .lte('lesson_date', weekEnd.toISOString());
+        .gte('lesson_date', startOfWeek.toISOString())
+        .lte('lesson_date', endOfWeek.toISOString());
 
       let weeklyAverage = 0;
       if (dailyAssessments && dailyAssessments.length > 0) {
@@ -196,14 +238,17 @@ const calculateTotalScore = (assessment) => {
       const { count: weeklyAssessmentsCount } = await supabase
         .from('daily_assessments')
         .select('*', { count: 'exact' })
-        .gte('lesson_date', weekStart.toISOString())
-        .lte('lesson_date', weekEnd.toISOString());
+        .gte('lesson_date', startOfWeek.toISOString())
+        .lte('lesson_date', endOfWeek.toISOString());
 
-      const { count: weeklyClassesCount } = await supabase
-        .from('lessons')
-        .select('*', { count: 'exact' })
-        .gte('lesson_date', weekStart.toISOString())
-        .lte('lesson_date', weekEnd.toISOString());
+const { data: allLessons } = await supabase
+  .from('lessons')
+  .select('lesson_date');
+
+const weeklyClassesCount = allLessons.filter(lesson => {
+  const lessonDate = new Date(lesson.lesson_date);
+  return lessonDate >= startOfWeek && lessonDate <= endOfWeek;
+}).length;
 
       setStudents(studentsWithLastAssessment || []);
       setStudentsCount(studentsCount || 0);
@@ -300,27 +345,84 @@ const calculateTotalScore = (assessment) => {
                 <span className="students-count-badge">{studentsCount} طالب</span>
               </div>
               
-              {!students || students.length === 0 ? (
-                <div className="empty-state-list">
-                  <div className="empty-icon">👨‍🎓</div>
-                  <h3>لا يوجد طلاب مسجلين</h3>
-                  <p>ابدأ بإضافة طلابك الأول</p>
-                </div>
-              ) : (
-                <div className="students-table-container">
-                  <table className="students-table">
-                    <thead>
-                      <tr>
-                        <th>الاسم</th>
-                        <th>الصف</th>
-                        <th>الحالة</th>
-                        <th>آخر تقييم</th>
-                        <th>الإجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student) => (
-                        <tr key={student.id}>
+              
+  <div className="filters-container">
+    <div className="filter-group">
+      <div className="search-box">
+        <input
+          type="text"
+          placeholder="ابحث باسم الطالب..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <span>🔍</span>
+      </div>
+    </div>
+    
+    <div className="filter-group">
+      <select 
+        value={filterGroupType} 
+        onChange={(e) => setFilterGroupType(e.target.value)}
+        className="filter-select"
+      >
+        <option value="">كل أنواع التعليم</option>
+        {groupTypes.map(group => (
+          <option key={group.id} value={group.name}>
+            {group.name}
+          </option>
+        ))}
+      </select>
+    </div>
+    
+    <div className="filter-group">
+      <select 
+        value={filterGradeLevel} 
+        onChange={(e) => setFilterGradeLevel(e.target.value)}
+        className="filter-select"
+      >
+        <option value="">كل الصفوف</option>
+        {gradeLevels.map(grade => (
+          <option key={grade.id} value={grade.name}>
+            {grade.name}
+          </option>
+        ))}
+      </select>
+    </div>
+    
+    <button 
+      className="btn btn-clear-filters"
+      onClick={() => {
+        setSearchTerm('');
+        setFilterGroupType('');
+        setFilterGradeLevel('');
+      }}
+    >
+      مسح الفلاتر
+    </button>
+  </div>
+  
+  {/* غيري students إلى filteredStudents في بقية الكود */}
+  {!filteredStudents || filteredStudents.length === 0 ? (
+    <div className="empty-state-list">
+      <div className="empty-icon">👨‍🎓</div>
+      <h3>لا يوجد طلاب مسجلين</h3>
+      <p>ابدأ بإضافة طلابك الأول</p>
+    </div>
+  ) : (
+    <div className="students-table-container">
+      <table className="students-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>الصف</th>
+            <th>الحالة</th>
+            <th>آخر تقييم</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredStudents.map((student) => ( // غيري هنا
+            <tr key={student.id}>
                           <td>
                             <div className="student-profile">
                               <div className="student-avatar">
