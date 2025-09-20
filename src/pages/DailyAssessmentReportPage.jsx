@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
+import { MAX_SCORES } from '../config/assessmentConfig';
 import { supabase } from '../services/supabase';
-import { parentMessageService } from '../services/parentMessageService';
 import Sidebar from '../components/Sidebar';
 import '../styles/TeacherDashboard.css';
 import '../styles/DailyAssessmentReportPage.css';
