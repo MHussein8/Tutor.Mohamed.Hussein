@@ -124,9 +124,7 @@ const totals = dailyAssessments.reduce((acc, assessment) => {
     return newAcc;
   }, acc);
 }, {});
-
-      const daysCount = dailyAssessments.length;
-      
+    
       // إنشاء التقرير بحساب متوسط كل فئة
 const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
   if (totals[`${key}_count`] > 0) {
