@@ -206,19 +206,26 @@ endOfWeek.setHours(23, 59, 59, 999);
         let totalActualScore = 0;
         let totalMaxPossibleScore = 0;
 
-        dailyAssessments.forEach(assessment => {
-          const actualScore = 
-            (assessment.homework_score || 0) +
-            (assessment.grammar_score || 0) +
-            (assessment.vocabulary_score || 0) +
-            (assessment.memorization_score || 0) +
-            (assessment.attendance_score || 0) +
-            (assessment.writing_score || 0) +
-            (assessment.interaction_score || 0);
-          
-          totalActualScore += actualScore;
-          totalMaxPossibleScore += 100;
-        });
+dailyAssessments.forEach(assessment => {
+  let actualScore = 0;
+  let maxPossibleScore = 0;
+  
+  // حساب الدرجة الفعلية والمجموع الأقصى لكل تقييم
+  Object.keys(MAX_SCORES).forEach(key => {
+    const scoreValue = assessment[key]; // بدون _score
+    if (scoreValue !== null && scoreValue !== undefined) {
+      actualScore += scoreValue;
+      maxPossibleScore += MAX_SCORES[key];
+    }
+  });
+  
+  totalActualScore += actualScore;
+  totalMaxPossibleScore += maxPossibleScore; // ✅ مجموع ديناميكي
+});
+
+weeklyAverage = totalMaxPossibleScore > 0 
+  ? Math.round((totalActualScore / totalMaxPossibleScore) * 100)
+  : 0;
 
         weeklyAverage = totalMaxPossibleScore > 0 
           ? Math.round((totalActualScore / totalMaxPossibleScore) * 100)
