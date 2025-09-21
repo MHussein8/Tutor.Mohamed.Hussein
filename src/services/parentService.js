@@ -114,20 +114,28 @@ return Object.keys(MAX_SCORES).reduce((sum, key) => {
       }
 
       // حساب الإجماليات لكل فئة باستخدام MAX_SCORES
-      const totals = dailyAssessments.reduce((acc, assessment) => {
-        return Object.keys(MAX_SCORES).reduce((newAcc, key) => {
-          newAcc[key] = (newAcc[key] || 0) + (assessment[key] || 0);
-          return newAcc;
-        }, acc);
-      }, {});
+const totals = dailyAssessments.reduce((acc, assessment) => {
+  return Object.keys(MAX_SCORES).reduce((newAcc, key) => {
+    // جمع القيم فقط إذا كانت موجودة
+    if (assessment[key] !== null && assessment[key] !== undefined) {
+      newAcc[key] = (newAcc[key] || 0) + (assessment[key] || 0);
+      newAcc[`${key}_count`] = (newAcc[`${key}_count`] || 0) + 1; // عد عدد المرات التي تم تقييمها
+    }
+    return newAcc;
+  }, acc);
+}, {});
 
       const daysCount = dailyAssessments.length;
       
       // إنشاء التقرير بحساب متوسط كل فئة
-      const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
-        rep[`${key}_score`] = Math.round(totals[key] / daysCount);
-        return rep;
-      }, {});
+const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
+  if (totals[`${key}_count`] > 0) {
+    rep[`${key}_score`] = Math.round(totals[key] / totals[`${key}_count`]);
+  } else {
+    rep[`${key}_score`] = null; // أو 0 إذا كنت تريد عرض صفر
+  }
+  return rep;
+}, {});
 
       // حساب الإجمالي الكلي والنسبة المئوية
       report.total_score = Object.values(report).reduce((sum, score) => sum + score, 0);

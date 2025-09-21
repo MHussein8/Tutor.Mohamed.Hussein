@@ -1,7 +1,7 @@
 import React from 'react';
 import '../../styles/ParentDashboard.css';
 
-const ParentStatsGrid = ({ stats, colors, mostImprovedSkill }) => {
+const ParentStatsGrid = ({ stats, colors, mostImprovedSkill, actualMaxScore }) => {
 
   const getSkillName = (skillKey) => {
   const skillNames = {

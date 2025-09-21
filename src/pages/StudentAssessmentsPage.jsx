@@ -103,20 +103,28 @@ const totalScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
                       <span className="total-score-header">المجموع: {totalScore}/{calculateMaxTotalScore()}</span>
                     </div>
                     <div className="card-body">
-{Object.keys(MAX_SCORES).map((key) => (
-  <div key={key} className="score-item">
-    <span className="score-label">
-      {key === 'homework' ? 'الواجب' :
-       key === 'grammar' ? 'القواعد' :
-       key === 'vocabulary' ? 'المفردات' :
-       key === 'memorization' ? 'التسميع' :
-       key === 'attendance' ? 'الحضور' :
-       key === 'writing' ? 'الكتابة' :
-       key === 'interaction' ? 'التفاعل' : key}:
-    </span>
-    <span className="score-value">{assessment[`${key}_score`]}/{MAX_SCORES[key]}</span>
-  </div>
-))}
+{Object.keys(MAX_SCORES).map((key) => {
+  const score = assessment[`${key}_score`];
+  const maxScore = MAX_SCORES[key];
+  const hasScore = score !== null && score !== undefined;
+  
+  return (
+    <div key={key} className={`score-item ${!hasScore ? 'not-recorded' : ''}`}>
+      <span className="score-label">
+        {key === 'homework' ? 'الواجب' :
+         key === 'grammar' ? 'القواعد' :
+         key === 'vocabulary' ? 'المفردات' :
+         key === 'memorization' ? 'التسميع' :
+         key === 'attendance' ? 'الحضور' :
+         key === 'writing' ? 'الكتابة' :
+         key === 'interaction' ? 'التفاعل' : key}:
+      </span>
+      <span className="score-value">
+        {hasScore ? `${score}/${maxScore}` : 'غير مسجل'}
+      </span>
+    </div>
+  );
+})}
                     </div>
                     <div className="card-footer">
                       <span className="assessment-date">

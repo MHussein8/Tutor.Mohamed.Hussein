@@ -237,26 +237,35 @@ const calculateStats = useCallback((assessments) => {
                       </div>
                       <div className="card-body improved-card-body">
 <div className="scores-grid improved-grid">
-  {Object.keys(MAX_SCORES).map((key) => (
-    <div key={key} className="score-item improved">
-      <span className="score-label">
-        {key === 'homework' ? 'الواجب' :
-         key === 'grammar' ? 'القواعد' :
-         key === 'vocabulary' ? 'المفردات' :
-         key === 'memorization' ? 'التسميع' :
-         key === 'attendance' ? 'الحضور' :
-         key === 'writing' ? 'الكتابة' :
-         key === 'interaction' ? 'التفاعل' : key}
-      </span>
-      <div className="score-bar-container">
-        <div 
-          className="score-bar" 
-          style={{width: `${(assessment[`${key}_score`] / MAX_SCORES[key]) * 100}%`}}
-        ></div>
+  {Object.keys(MAX_SCORES).map((key) => {
+    const score = assessment[`${key}_score`];
+    const maxScore = MAX_SCORES[key];
+    const hasScore = score !== null && score !== undefined;
+    const percentage = hasScore ? (score / maxScore) * 100 : 0;
+    
+    return (
+      <div key={key} className={`score-item improved ${!hasScore ? 'not-recorded' : ''}`}>
+        <span className="score-label">
+          {key === 'homework' ? 'الواجب' :
+           key === 'grammar' ? 'القواعد' :
+           key === 'vocabulary' ? 'المفردات' :
+           key === 'memorization' ? 'التسميع' :
+           key === 'attendance' ? 'الحضور' :
+           key === 'writing' ? 'الكتابة' :
+           key === 'interaction' ? 'التفاعل' : key}
+        </span>
+        <div className="score-bar-container">
+          <div 
+            className="score-bar" 
+            style={{width: `${percentage}%`}}
+          ></div>
+        </div>
+        <span className="score-value">
+          {hasScore ? `${score}/${maxScore}` : 'غير مسجل'}
+        </span>
       </div>
-      <span className="score-value">{assessment[`${key}_score`]}/{MAX_SCORES[key]}</span>
-    </div>
-  ))}
+    );
+  })}
 </div>
                       </div>
                     </div>

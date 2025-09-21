@@ -1,6 +1,6 @@
 // WeeklyReportPage.jsx
 import React, { useState, useEffect } from 'react';
-import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
+import { MAX_SCORES } from '../config/assessmentConfig';
 import { getStudents, getWeeklyReport } from '../services/teacherService';
 import Sidebar from '../components/Sidebar';
 import '../styles/WeeklyReport.css';
@@ -13,6 +13,15 @@ const WeeklyReportPage = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 992);
+  const calculateActualMaxScore = (report) => {
+  let maxPossible = 0;
+  Object.keys(MAX_SCORES).forEach(key => {
+    if (report[`${key}_score`] !== null && report[`${key}_score`] !== undefined) {
+      maxPossible += MAX_SCORES[key];
+    }
+  });
+  return maxPossible;
+};
 
 function getCurrentWeek() {
   const today = new Date();
@@ -155,11 +164,16 @@ function getCurrentWeek() {
                 <div className="performance-summary improved-summary">
                   <div className="summary-item total-score">
                     <span>المجموع الكلي</span>
-                    <span className="score-value">{report.total_score}/{calculateMaxTotalScore()}</span>
+                    <span className="score-value">{report.total_score}/{calculateActualMaxScore(report)}</span>
                   </div>
                   <div className="summary-item percentage-score">
                     <span>النسبة المئوية</span>
-                    <span className="score-value">{report.percentage}%</span>
+                    <span className="score-value">
+  {calculateActualMaxScore(report) > 0 
+    ? Math.round((report.total_score / calculateActualMaxScore(report)) * 100) 
+    : 0
+  }%
+</span>
                   </div>
                 </div>
               </div>

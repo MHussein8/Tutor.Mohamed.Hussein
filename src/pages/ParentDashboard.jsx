@@ -90,22 +90,36 @@ const loadStudentData = useCallback(async (studentId) => {
     const improvedSkillData = await parentService.getMostImprovedSkill(studentId);
 setMostImprovedSkill(improvedSkillData);
 
-    const totalScore = dailyData.reduce((sum, assessment) => {
-      return sum + (
-        (assessment.grammar_score || 0) +
-        (assessment.vocabulary_score || 0) +
-        (assessment.writing_score || 0) +
-        (assessment.homework_score || 0) +
-        (assessment.memorization_score || 0) +
-        (assessment.interaction_score || 0) +
-        (assessment.attendance_score || 0) +
-        (assessment.quiz_score || 0)
-      );
-    }, 0);
+const totalScore = dailyData.reduce((sum, assessment) => {
+  let assessmentTotal = 0;
+  let assessmentCount = 0;
+  
+  Object.keys(MAX_SCORES).forEach(key => {
+    if (assessment[key] !== null && assessment[key] !== undefined) {
+      assessmentTotal += assessment[key] || 0;
+      assessmentCount += 1;
+    }
+  });
+  
+  return sum + (assessmentCount > 0 ? assessmentTotal : 0);
+}, 0);
 
-    const averagePerformance = dailyData.length > 0
-      ? Math.round((totalScore / (dailyData.length * calculateMaxTotalScore())) * 100)
-      : 0;
+// حساب النسبة بناء على العناصر المتاحة فقط
+const availableMaxScore = dailyData.reduce((sum, assessment) => {
+  let assessmentMax = 0;
+  
+  Object.keys(MAX_SCORES).forEach(key => {
+    if (assessment[key] !== null && assessment[key] !== undefined) {
+      assessmentMax += MAX_SCORES[key];
+    }
+  });
+  
+  return sum + assessmentMax;
+}, 0);
+
+const averagePerformance = availableMaxScore > 0
+  ? Math.round((totalScore / availableMaxScore) * 100)
+  : 0;
 
 const progressPercentage = await calculateProgress(studentId);
 
@@ -192,15 +206,38 @@ const progressPercentage = await calculateProgress(studentId);
     }
   };
 
-  const loadWeeklyReport = async (studentId, weekDate) => {
-    try {
-      const reportData = await parentService.getWeeklyReportFromDaily(studentId, weekDate);
-      setWeeklyReport(reportData);
-    } catch (error) {
-    console.error('Error loading weekly report:', error);
+const loadWeeklyReport = async (studentId, weekDate) => {
+  try {
+    const reportData = await parentService.getWeeklyReportFromDaily(studentId, weekDate);
+    
+    if (reportData) {
+      // إعادة حساب المجموع والنسبة بناء على العناصر المتاحة فقط
+      let totalScore = 0;
+      let totalMax = 0;
+      
+      Object.keys(MAX_SCORES).forEach(key => {
+        const scoreValue = reportData[key] || reportData[`${key}_score`];
+        if (scoreValue !== null && scoreValue !== undefined) {
+          totalScore += scoreValue;
+          totalMax += MAX_SCORES[key];
+        }
+      });
+      
+      // تحديث البيانات بالقيم المحسوبة حديثاً
+setWeeklyReport({
+  ...reportData,
+  total_score: totalScore,
+  percentage: totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0,
+  calculated_max_score: totalMax // يمكن إضافته لعرض القيمة القصوى المحسوبة
+});
+    } else {
       setWeeklyReport(null);
     }
-  };
+  } catch (error) {
+    console.error('Error loading weekly report:', error);
+    setWeeklyReport(null);
+  }
+};
 
   const handleStudentChange = async (studentId) => {
     setSelectedStudent(studentId);
@@ -395,18 +432,21 @@ const progressPercentage = await calculateProgress(studentId);
                 <div key={assessment.id} className="assessment-card-new">
                   <div className="assessment-header-new">
                     <h4>تقييم يوم {new Date(assessment.lesson_date).toLocaleDateString('ar-EG')}</h4>
-                    <span className="total-score-new">
-                      {Math.round((
-                        (assessment.grammar_score || 0) +
-                        (assessment.vocabulary_score || 0) +
-                        (assessment.writing_score || 0) +
-                        (assessment.homework_score || 0) +
-                        (assessment.memorization_score || 0) +
-                        (assessment.interaction_score || 0) +
-                        (assessment.attendance_score || 0) +
-                        (assessment.quiz_score || 0)
-                       ))} / {calculateMaxTotalScore()}
-                    </span>
+<span className="total-score-new">
+  {(() => {
+    let totalScore = 0;
+    let totalMax = 0;
+    
+    Object.keys(MAX_SCORES).forEach(key => {
+      if (assessment[key] !== null && assessment[key] !== undefined) {
+        totalScore += assessment[key] || 0;
+        totalMax += MAX_SCORES[key];
+      }
+    });
+    
+    return `${Math.round(totalScore)} / ${totalMax}`;
+  })()}
+</span>
                   </div>
                   <div className="scores-grid-new">
                     <div className="score-item-new">
@@ -536,36 +576,81 @@ const progressPercentage = await calculateProgress(studentId);
                 <div className="report-summary-new">
                   <div className="total-score-card-new">
                     <h3>المجموع الكلي</h3>
-                    <div className="score-new-large">{weeklyReport.total_score}/{calculateMaxTotalScore()}</div>
-                    <div className="percentage-new">{weeklyReport.percentage}%</div>
+<div className="score-new-large">
+  {(() => {
+    const { totalScore, totalMax } = Object.keys(MAX_SCORES).reduce((acc, key) => {
+      const scoreValue = weeklyReport[key] || weeklyReport[`${key}_score`];
+      
+      if (scoreValue !== null && scoreValue !== undefined) {
+        acc.totalScore += scoreValue;
+        acc.totalMax += MAX_SCORES[key];
+      }
+      
+      return acc;
+    }, { totalScore: 0, totalMax: 0 });
+    
+    return `${totalScore} / ${totalMax}`;
+  })()}
+</div>
+                    <div className="percentage-new">
+  {(() => {
+    let totalScore = 0;
+    let totalMax = 0;
+    
+    Object.keys(MAX_SCORES).forEach(key => {
+      const scoreValue = weeklyReport[`${key}_score`] || weeklyReport[key];
+      if (scoreValue !== null && scoreValue !== undefined) {
+        totalScore += scoreValue;
+        totalMax += MAX_SCORES[key];
+      }
+    });
+    
+    return totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+  })()}%
+</div>
+                    <div className="percentage-explanation-new" style={{fontSize: '12px', opacity: 0.7}}>
+  (محسوب على العناصر المتاحة فقط)
+</div>
                   </div>
                 </div>
                 <div className="detailed-scores-new">
                   <h3>التفاصيل</h3>
 <div className="scores-grid-detailed-new">
-  {Object.keys(MAX_SCORES).map((key) => (
-    <div key={key} className="score-item-detailed-new">
-      <span className="score-label-new">
-        {key === 'homework' ? 'الواجب المنزلي' :
-         key === 'grammar' ? 'القواعد' :
-         key === 'vocabulary' ? 'المفردات' :
-         key === 'memorization' ? 'التسميع' :
-         key === 'attendance' ? 'الحضور' :
-         key === 'writing' ? 'الكتابة' :
-         key === 'interaction' ? 'التفاعل' : key}
-      </span>
-      <div className="score-container-detailed-new">
-        <span className="score-value-new">{weeklyReport[`${key}_score`]}/{MAX_SCORES[key]}</span>
-        <div className="score-bar-detailed-new">
-          <div
-            className="score-progress-detailed-new"
-            style={{ width: `${(weeklyReport[`${key}_score`] / MAX_SCORES[key]) * 100}%`,
-                    background: getScoreColor(weeklyReport[`${key}_score`], MAX_SCORES[key]) }}
-          ></div>
+  {Object.keys(MAX_SCORES).map((key) => {
+    const scoreValue = weeklyReport[key] || weeklyReport[`${key}_score`];
+    const maxScore = MAX_SCORES[key];
+    
+    // عرض العنصر فقط إذا كانت له قيمة
+    if (scoreValue !== null && scoreValue !== undefined) {
+      return (
+        <div key={key} className="score-item-detailed-new">
+          <span className="score-label-new">
+            {key === 'homework_score' ? 'الواجب المنزلي' :
+             key === 'grammar_score' ? 'القواعد' :
+             key === 'vocabulary_score' ? 'المفردات' :
+             key === 'memorization_score' ? 'التسميع' :
+             key === 'attendance_score' ? 'الحضور' :
+             key === 'writing_score' ? 'الكتابة' :
+             key === 'interaction_score' ? 'التفاعل' :
+             key === 'quiz_score' ? 'الاختبارات القصيرة' : key}
+          </span>
+          <div className="score-container-detailed-new">
+            <span className="score-value-new">{scoreValue}/{maxScore}</span>
+            <div className="score-bar-detailed-new">
+              <div
+                className="score-progress-detailed-new"
+                style={{ 
+                  width: `${(scoreValue / maxScore) * 100}%`,
+                  background: getScoreColor(scoreValue, maxScore) 
+                }}
+              ></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  ))}
+      );
+    }
+    return null; // لا تعرض العناصر التي لا تحتوي على قيم
+  })}
 </div>
                 </div>
                 {weeklyReport.teacher_notes && (
