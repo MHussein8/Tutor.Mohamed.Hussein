@@ -84,7 +84,6 @@ const loadStudentData = useCallback(async (studentId) => {
   try {
     const [dailyData] = await Promise.all([
       parentService.getDailyAssessments(studentId),
-      parentService.getStudentPerformanceAverage(studentId)
     ]);
 
     setDailyAssessments(dailyData);
@@ -99,7 +98,8 @@ setMostImprovedSkill(improvedSkillData);
         (assessment.homework_score || 0) +
         (assessment.memorization_score || 0) +
         (assessment.interaction_score || 0) +
-        (assessment.attendance_score || 0)
+        (assessment.attendance_score || 0) +
+        (assessment.quiz_score || 0)
       );
     }, 0);
 
@@ -403,8 +403,9 @@ const progressPercentage = await calculateProgress(studentId);
                         (assessment.homework_score || 0) +
                         (assessment.memorization_score || 0) +
                         (assessment.interaction_score || 0) +
-                        (assessment.attendance_score || 0)
-                      ))} / 100
+                        (assessment.attendance_score || 0) +
+                        (assessment.quiz_score || 0)
+                       ))} / {calculateMaxTotalScore()}
                     </span>
                   </div>
                   <div className="scores-grid-new">
@@ -413,10 +414,9 @@ const progressPercentage = await calculateProgress(studentId);
                       <div className="score-bar-new">
                         <div
                           className="score-progress-new"
-                          style={{width: `${(assessment.grammar_score || 0)/15*100}%`,
-                                  background: getScoreColor(assessment.grammar_score || 0, 15)}}
+                          style={{width: `${(assessment.grammar_score || 0)/5*100}%`, background: getScoreColor(assessment.grammar_score || 0, 5)}}
                         ></div>
-                        <span className="score-new">{assessment.grammar_score}/15</span>
+                        <span className="score-new">{assessment.grammar_score}/5</span>
                       </div>
                     </div>
                     <div className="score-item-new">
@@ -424,10 +424,9 @@ const progressPercentage = await calculateProgress(studentId);
                       <div className="score-bar-new">
                         <div
                           className="score-progress-new"
-                          style={{width: `${(assessment.vocabulary_score || 0)/15*100}%`,
-                                  background: getScoreColor(assessment.vocabulary_score || 0, 15)}}
+                          style={{width: `${(assessment.vocabulary_score || 0)/5*100}%`, background: getScoreColor(assessment.vocabulary_score || 0, 5)}}
                         ></div>
-                        <span className="score-new">{assessment.vocabulary_score}/15</span>
+                        <span className="score-new">{assessment.vocabulary_score}/5</span>
                       </div>
                     </div>
                     <div className="score-item-new">
@@ -435,10 +434,9 @@ const progressPercentage = await calculateProgress(studentId);
                       <div className="score-bar-new">
                         <div
                           className="score-progress-new"
-                          style={{width: `${(assessment.writing_score || 0)/10*100}%`,
-                                  background: getScoreColor(assessment.writing_score || 0, 10)}}
+                          style={{width: `${(assessment.writing_score || 0)/5*100}%`, background: getScoreColor(assessment.writing_score || 0, 5)}}
                         ></div>
-                        <span className="score-new">{assessment.writing_score}/10</span>
+                        <span className="score-new">{assessment.writing_score}/5</span>
                       </div>
                     </div>
                     <div className="score-item-new">
@@ -446,10 +444,9 @@ const progressPercentage = await calculateProgress(studentId);
                       <div className="score-bar-new">
                         <div
                           className="score-progress-new"
-                          style={{width: `${(assessment.homework_score || 0)/20*100}%`,
-                                  background: getScoreColor(assessment.homework_score || 0, 20)}}
+                          style={{width: `${(assessment.homework_score || 0)/10*100}%`, background: getScoreColor(assessment.homework_score || 0, 10)}}
                         ></div>
-                        <span className="score-new">{assessment.homework_score}/20</span>
+                        <span className="score-new">{assessment.homework_score}/10</span>
                       </div>
                     </div>
                     <div className="score-item-new">
@@ -468,10 +465,9 @@ const progressPercentage = await calculateProgress(studentId);
                       <div className="score-bar-new">
                         <div
                           className="score-progress-new"
-                          style={{width: `${(assessment.interaction_score || 0)/10*100}%`,
-                                  background: getScoreColor(assessment.interaction_score || 0, 10)}}
+                          style={{width: `${(assessment.interaction_score || 0)/5*100}%`, background: getScoreColor(assessment.interaction_score || 0, 5)}}
                         ></div>
-                        <span className="score-new">{assessment.interaction_score}/10</span>
+                        <span className="score-new">{assessment.interaction_score}/5</span>
                       </div>
                     </div>
                     <div className="score-item-new">
@@ -479,10 +475,9 @@ const progressPercentage = await calculateProgress(studentId);
   <div className="score-bar-new">
     <div
       className="score-progress-new"
-      style={{width: `${(assessment.quiz_score || 0)/10*100}%`,
-              background: getScoreColor(assessment.quiz_score || 0, 10)}}
+      style={{width: `${(assessment.quiz_score || 0)/35*100}%`, background: getScoreColor(assessment.quiz_score || 0, 35)}}
     ></div>
-    <span className="score-new">{assessment.quiz_score}/10</span>
+    <span className="score-new">{assessment.quiz_score}/35</span>
   </div>
 </div>
                     <div className="score-item-new">
@@ -490,10 +485,9 @@ const progressPercentage = await calculateProgress(studentId);
                       <div className="score-bar-new">
                         <div
                           className="score-progress-new"
-                          style={{width: `${(assessment.attendance_score || 0)/15*100}%`,
-                                  background: getScoreColor(assessment.attendance_score || 0, 15)}}
+                          style={{width: `${(assessment.attendance_score || 0)/10*100}%`, background: getScoreColor(assessment.attendance_score || 0, 10)}}
                         ></div>
-                        <span className="score-new">{assessment.attendance_score}/15</span>
+                        <span className="score-new">{assessment.attendance_score}/10</span>
                       </div>
                     </div>
                   </div>

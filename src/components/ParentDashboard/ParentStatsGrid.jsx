@@ -1,5 +1,4 @@
 import React from 'react';
-import { calculateMaxTotalScore } from '../../config/assessmentConfig';
 import '../../styles/ParentDashboard.css';
 
 const ParentStatsGrid = ({ stats, colors, mostImprovedSkill }) => {
@@ -27,7 +26,7 @@ const ParentStatsGrid = ({ stats, colors, mostImprovedSkill }) => {
         <div className="stat-content">
           <h3 style={{ color: '#FFFFFF' }}>متوسط الأداء</h3>
 
-          <p className="stat-value">{stats.performanceAverage}/{calculateMaxTotalScore()}</p>
+          <p className="stat-value">{stats.performanceAverage}%</p>
         </div>
       </div>
       
