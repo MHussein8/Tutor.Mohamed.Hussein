@@ -1,7 +1,7 @@
 // src/pages/StudentAssessmentsPage.jsx
 
 import React, { useState, useEffect } from 'react';
-import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
+import { MAX_SCORES } from '../config/assessmentConfig';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import Sidebar from '../components/Sidebar';
@@ -38,14 +38,14 @@ const StudentAssessmentsPage = () => {
         setStudent(studentData);
 
         // جلب جميع التقييمات لهذا الطالب
-        const { data: assessmentsData, error: assessmentsError } = await supabase
-          .from('daily_assessments')
-          .select(`
-            *,
-            lessons (title, lesson_date)
-          `)
-          .eq('student_id', studentId)
-          .order('lesson_date', { ascending: false });
+const { data: assessmentsData, error: assessmentsError } = await supabase
+  .from('daily_assessments')
+  .select(`
+    *,
+    lessons (title, lesson_date)
+  `)
+  .eq('student_id', studentId)
+  .order('lesson_date', { ascending: false });
 
         if (assessmentsError) throw assessmentsError;
         setAssessments(assessmentsData);
@@ -91,39 +91,47 @@ const StudentAssessmentsPage = () => {
           ) : assessments.length > 0 ? (
             <div className="assessments-grid">
               {assessments.map(assessment => {
-const totalScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
-  return sum + (assessment[`${key}_score`] || 0);
-}, 0);
+const { totalScore, totalMax } = Object.keys(MAX_SCORES).reduce((acc, key) => {
+  const scoreValue = assessment[key];  // ✅ بدون _score
+  if (scoreValue !== null && scoreValue !== undefined) {
+    acc.totalScore += scoreValue;
+    acc.totalMax += MAX_SCORES[key];
+  }
+  return acc;
+}, { totalScore: 0, totalMax: 0 });
                 return (
                   <div className="assessment-card" key={assessment.id}>
                     <div className="card-header">
                       <span className="student-name-header">
                         {assessment.lessons.title}
                       </span>
-                      <span className="total-score-header">المجموع: {totalScore}/{calculateMaxTotalScore()}</span>
+                      <span className="total-score-header">المجموع: {totalScore}/{totalMax}</span>
                     </div>
                     <div className="card-body">
 {Object.keys(MAX_SCORES).map((key) => {
-  const score = assessment[`${key}_score`];
+  const score = assessment[key];
   const maxScore = MAX_SCORES[key];
   const hasScore = score !== null && score !== undefined;
   
-  return (
-    <div key={key} className={`score-item ${!hasScore ? 'not-recorded' : ''}`}>
-      <span className="score-label">
-        {key === 'homework' ? 'الواجب' :
-         key === 'grammar' ? 'القواعد' :
-         key === 'vocabulary' ? 'المفردات' :
-         key === 'memorization' ? 'التسميع' :
-         key === 'attendance' ? 'الحضور' :
-         key === 'writing' ? 'الكتابة' :
-         key === 'interaction' ? 'التفاعل' : key}:
-      </span>
-      <span className="score-value">
-        {hasScore ? `${score}/${maxScore}` : 'غير مسجل'}
-      </span>
-    </div>
-  );
+  // عرض العنصر فقط إذا كان له قيمة
+  if (hasScore) {
+    return (
+      <div key={key} className="score-item">
+        <span className="score-label">
+          {key === 'homework_score' ? 'الواجب' :
+           key === 'grammar_score' ? 'القواعد' :
+           key === 'vocabulary_score' ? 'المفردات' :
+           key === 'memorization_score' ? 'التسميع' :
+           key === 'attendance_score' ? 'الحضور' :
+           key === 'writing_score' ? 'الكتابة' :
+           key === 'interaction_score' ? 'التفاعل' :
+           key === 'quiz_score' ? 'الاختبارات' : key}:
+        </span>
+        <span className="score-value">{score}/{maxScore}</span>
+      </div>
+    );
+  }
+  return null; // لا تعرض العناصر غير المسجلة
 })}
                     </div>
                     <div className="card-footer">

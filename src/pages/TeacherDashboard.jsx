@@ -132,13 +132,20 @@ const handleReplyToMessage = async (replyData) => {
   }, []);
   
 const calculateTotalScore = (assessment) => {
-  if (!MAX_SCORES || typeof MAX_SCORES !== 'object') {
-    console.error('MAX_SCORES is undefined or not an object');
-    return 0;
-  }
-  return Object.keys(MAX_SCORES).reduce((sum, key) => {
-    return sum + (assessment[`${key}_score`] || 0);
-  }, 0);
+  if (!assessment || !MAX_SCORES) return 0;
+  
+  let totalScore = 0;
+  let totalMax = 0;
+  
+  Object.keys(MAX_SCORES).forEach(key => {
+    const scoreValue = assessment[key];
+    if (scoreValue !== null && scoreValue !== undefined) {
+      totalScore += scoreValue;
+      totalMax += MAX_SCORES[key];
+    }
+  });
+  
+  return `${totalScore}/${totalMax}`;
 };
 
   const fetchFilterOptions = async () => {
@@ -447,9 +454,9 @@ const weeklyClassesCount = allLessons.filter(lesson => {
                             <div className="last-assessment-info">
                               {student.last_assessment ? (
                                 <>
-                                  <span className="assessment-score">
-                                    {calculateTotalScore(student.last_assessment)}/100
-                                  </span>
+<span className="assessment-score">
+  {calculateTotalScore(student.last_assessment)}
+</span>
                                   <span className="assessment-date">
                                     {formatDate(student.last_assessment.lesson_date)}
                                   </span>
