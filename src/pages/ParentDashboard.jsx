@@ -449,16 +449,20 @@ setWeeklyReport({
 </span>
                   </div>
                   <div className="scores-grid-new">
-                    <div className="score-item-new">
-                      <span>القواعد</span>
-                      <div className="score-bar-new">
-                        <div
-                          className="score-progress-new"
-                          style={{width: `${(assessment.grammar_score || 0)/5*100}%`, background: getScoreColor(assessment.grammar_score || 0, 5)}}
-                        ></div>
-                        <span className="score-new">{assessment.grammar_score}/5</span>
-                      </div>
-                    </div>
+                    
+{assessment.grammar_score !== null && assessment.grammar_score !== undefined && (
+  <div className="score-item-new">
+    <span>الجرامر</span>
+    <div className="score-bar-new">
+      <div
+        className="score-progress-new"
+        style={{width: `${(assessment.grammar_score || 0)/5*100}%`, background: getScoreColor(assessment.grammar_score || 0, 5)}}
+      ></div>
+      <span className="score-new">{assessment.grammar_score}/5</span>
+    </div>
+  </div>
+)}              
+                    {assessment.vocabulary_score !== null && assessment.vocabulary_score !== undefined && (
                     <div className="score-item-new">
                       <span>المفردات</span>
                       <div className="score-bar-new">
@@ -469,6 +473,8 @@ setWeeklyReport({
                         <span className="score-new">{assessment.vocabulary_score}/5</span>
                       </div>
                     </div>
+                    )}
+                    {assessment.writing_score !== null && assessment.writing_score !== undefined && (
                     <div className="score-item-new">
                       <span>الكتابة</span>
                       <div className="score-bar-new">
@@ -479,6 +485,8 @@ setWeeklyReport({
                         <span className="score-new">{assessment.writing_score}/5</span>
                       </div>
                     </div>
+                    )}
+                    {assessment.homework_score !== null && assessment.homework_score !== undefined && (
                     <div className="score-item-new">
                       <span>الواجب</span>
                       <div className="score-bar-new">
@@ -489,6 +497,8 @@ setWeeklyReport({
                         <span className="score-new">{assessment.homework_score}/10</span>
                       </div>
                     </div>
+                    )}
+                    {assessment.memorization_score !== null && assessment.memorization_score !== undefined && (
                     <div className="score-item-new">
                       <span>التسميع</span>
                       <div className="score-bar-new">
@@ -500,6 +510,8 @@ setWeeklyReport({
                         <span className="score-new">{assessment.memorization_score}/15</span>
                       </div>
                     </div>
+                    )}
+                    {assessment.interaction_score !== null && assessment.interaction_score !== undefined && (
                     <div className="score-item-new">
                       <span>التفاعل</span>
                       <div className="score-bar-new">
@@ -510,6 +522,8 @@ setWeeklyReport({
                         <span className="score-new">{assessment.interaction_score}/5</span>
                       </div>
                     </div>
+                    )}
+                    {assessment.quiz_score !== null && assessment.quiz_score !== undefined && (
                     <div className="score-item-new">
   <span>الاختبارات القصيرة</span>
   <div className="score-bar-new">
@@ -520,6 +534,8 @@ setWeeklyReport({
     <span className="score-new">{assessment.quiz_score}/35</span>
   </div>
 </div>
+                    )}
+                    {assessment.attendance_score !== null && assessment.attendance_score !== undefined && (
                     <div className="score-item-new">
                       <span>الحضور</span>
                       <div className="score-bar-new">
@@ -530,6 +546,7 @@ setWeeklyReport({
                         <span className="score-new">{assessment.attendance_score}/10</span>
                       </div>
                     </div>
+                    )}
                   </div>
                   {assessment.teacher_notes && (
                     <div className="assessment-notes-new">
@@ -626,7 +643,7 @@ setWeeklyReport({
         <div key={key} className="score-item-detailed-new">
           <span className="score-label-new">
             {key === 'homework_score' ? 'الواجب المنزلي' :
-             key === 'grammar_score' ? 'القواعد' :
+             key === 'grammar_score' ? 'الجرامر' :
              key === 'vocabulary_score' ? 'المفردات' :
              key === 'memorization_score' ? 'التسميع' :
              key === 'attendance_score' ? 'الحضور' :

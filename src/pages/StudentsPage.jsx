@@ -290,7 +290,7 @@ const fetchStudents = async () => {
                         </td>
                         <td>
                           <span className="performance-score">
-                            {calculateStudentPerformance(student.weekly_assessments)}
+                            {calculateStudentPerformance(student.daily_assessments)}
                           </span>
                         </td>
                         <td>

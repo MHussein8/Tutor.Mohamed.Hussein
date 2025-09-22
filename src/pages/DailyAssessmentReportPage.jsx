@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MAX_SCORES } from '../config/assessmentConfig';
+import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { supabase } from '../services/supabase';
 import Sidebar from '../components/Sidebar';
 import '../styles/TeacherDashboard.css';
@@ -33,22 +33,31 @@ const calculateStats = useCallback((assessments) => {
     return;
   }
 
-  const totals = assessments.map(assessment => {
-    return Object.keys(MAX_SCORES).reduce((sum, key) => {
-      return sum + (assessment[`${key}_score`] || 0);
-    }, 0);
-  });
+  const combinedStats = assessments.reduce((acc, assessment) => {
+    const evaluatedKeys = Object.keys(MAX_SCORES).filter(key => assessment[key] !== null && assessment[key] !== undefined);
+    const currentTotal = evaluatedKeys.reduce((sum, key) => sum + assessment[key], 0);
+    const currentMax = calculateMaxTotalScore(evaluatedKeys);
 
-  const total = totals.reduce((sum, score) => sum + score, 0);
-  const average = Math.round(total / totals.length);
-  const max = Math.max(...totals);
-  const min = Math.min(...totals);
+    acc.totalScores.push(currentTotal);
+    acc.totalMaxScores.push(currentMax);
+
+    return acc;
+  }, { totalScores: [], totalMaxScores: [] });
+
+  const overallTotalScore = combinedStats.totalScores.reduce((sum, score) => sum + score, 0);
+  const overallTotalMaxScore = combinedStats.totalMaxScores.reduce((sum, maxScore) => sum + maxScore, 0);
+
+  const averagePercentage = overallTotalMaxScore > 0 ? (overallTotalScore / overallTotalMaxScore) * 100 : 0;
+
+  const allScores = combinedStats.totalScores;
+  const minScore = allScores.length > 0 ? Math.min(...allScores) : 0;
+  const maxScore = allScores.length > 0 ? Math.max(...allScores) : 0;
 
   setStats({
     totalStudents: assessments.length,
-    averageScore: average,
-    maxScore: max,
-    minScore: min
+    averageScore: Math.round(averagePercentage),
+    maxScore: maxScore,
+    minScore: minScore
   });
 }, [resetStats]);
 
@@ -115,7 +124,12 @@ const calculateStats = useCallback((assessments) => {
     alert('سيتم تنفيذ وظيفة التصدير إلى PDF في المستقبل');
   }, []);
 
-  const selectedLesson = lessons.find(lesson => lesson.id === selectedLessonId);
+const selectedLesson = lessons.find(lesson => lesson.id === Number(selectedLessonId));
+console.log('--- Debugging selectedLesson ---');
+console.log('Value of selectedLessonId:', selectedLessonId);
+console.log('Data type of selectedLessonId:', typeof selectedLessonId);
+console.log('Value of selectedLesson:', selectedLesson);
+console.log('---------------------------------');  
 
   return (
     <div className="dashboard-layout">
@@ -207,18 +221,24 @@ const calculateStats = useCallback((assessments) => {
             selectedLessonId && dailyAssessments.length > 0 ? (
               <div className="assessments-grid improved-grid">
                 {dailyAssessments.map(assessment => {
-                  const totalScore = assessment.homework_score + 
-                                     assessment.grammar_score + 
-                                     assessment.vocabulary_score + 
-                                     assessment.memorization_score +
-                                     assessment.writing_score +
-                                     assessment.interaction_score +
-                                     assessment.attendance_score;
+const totalScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
+  const score = assessment[key];
+  return sum + (score !== null && score !== undefined ? score : 0);
+}, 0);
+
+const maxPossibleScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
+  const score = assessment[key];
+  return sum + (score !== null && score !== undefined ? MAX_SCORES[key] : 0);
+}, 0);
 
                   // تحديد لون البطاقة بناء على الأداء
-                  const performanceLevel = totalScore >= 80 ? 'excellent' : 
-                                          totalScore >= 60 ? 'good' : 
-                                          totalScore >= 40 ? 'average' : 'weak';
+const performancePercentage = maxPossibleScore > 0 
+  ? (totalScore / maxPossibleScore) * 100 
+  : 0;
+
+const performanceLevel = performancePercentage >= 80 ? 'excellent' : 
+                        performancePercentage >= 60 ? 'good' : 
+                        performancePercentage >= 40 ? 'average' : 'weak';
 
                   return (
                     <div className={`assessment-card improved-card ${performanceLevel}`} key={assessment.id}>
@@ -231,40 +251,42 @@ const calculateStats = useCallback((assessments) => {
                             {assessment.students?.first_name} {assessment.students?.last_name}
                           </span>
                         </div>
-                        <span className={`total-score ${performanceLevel}`}>
-                          {totalScore}/100
-                        </span>
+<span className={`total-score ${performanceLevel}`}>
+  {totalScore}/{maxPossibleScore}
+</span>
                       </div>
                       <div className="card-body improved-card-body">
 <div className="scores-grid improved-grid">
-  {Object.keys(MAX_SCORES).map((key) => {
-    const score = assessment[`${key}_score`];
-    const maxScore = MAX_SCORES[key];
-    const hasScore = score !== null && score !== undefined;
-    const percentage = hasScore ? (score / maxScore) * 100 : 0;
-    
-    return (
-      <div key={key} className={`score-item improved ${!hasScore ? 'not-recorded' : ''}`}>
-        <span className="score-label">
-          {key === 'homework' ? 'الواجب' :
-           key === 'grammar' ? 'القواعد' :
-           key === 'vocabulary' ? 'المفردات' :
-           key === 'memorization' ? 'التسميع' :
-           key === 'attendance' ? 'الحضور' :
-           key === 'writing' ? 'الكتابة' :
-           key === 'interaction' ? 'التفاعل' : key}
-        </span>
-        <div className="score-bar-container">
-          <div 
-            className="score-bar" 
-            style={{width: `${percentage}%`}}
-          ></div>
+  {Object.keys(MAX_SCORES)
+    .filter(key => assessment[key] !== null && assessment[key] !== undefined)
+    .map((key) => {
+      const score = assessment[key];
+      const maxScore = MAX_SCORES[key];
+      const percentage = (score / maxScore) * 100;
+
+      return (
+        <div key={key} className="score-item improved">
+          <span className="score-label">
+            {key === 'homework_score' ? 'الواجب' :
+             key === 'grammar_score' ? 'القواعد' :
+             key === 'vocabulary_score' ? 'المفردات' :
+             key === 'memorization_score' ? 'التسميع' :
+             key === 'attendance_score' ? 'الحضور' :
+             key === 'writing_score' ? 'الكتابة' :
+             key === 'interaction_score' ? 'التفاعل' :
+             key === 'quiz_score' ? 'الاختبارات' : key}
+          </span>
+          <div className="score-bar-container">
+            <div 
+              className="score-bar" 
+              style={{width: `${percentage}%`}}
+            ></div>
+          </div>
+          <span className="score-value">
+            {`${score}/${maxScore}`}
+          </span>
         </div>
-        <span className="score-value">
-          {hasScore ? `${score}/${maxScore}` : 'غير مسجل'}
-        </span>
-      </div>
-    );
+      );
   })}
 </div>
                       </div>

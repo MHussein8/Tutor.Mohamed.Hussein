@@ -64,15 +64,17 @@ export const parentService = {
     if (error) throw error;
     
     if (data && data.length > 0) {
-      const totalScores = data.map(assessment => {
-return Object.keys(MAX_SCORES).reduce((sum, key) => {
-  return sum + (assessment[key] || 0);  // إزالة `_score` من key
-}, 0);
-      });
-      
-      const total = totalScores.reduce((sum, score) => sum + score, 0);
-      const totalMax = calculateMaxTotalScore() * data.length; // إجمالي القيم القصوى لكل التقييمات
-      return Math.round((total / totalMax) * 100); // النسبة المئوية
+const totalScoresAndMaxes = data.map(assessment => {
+  const evaluatedKeys = Object.keys(MAX_SCORES).filter(key => assessment[key] !== null && assessment[key] !== undefined);
+  const totalScore = evaluatedKeys.reduce((sum, key) => sum + assessment[key], 0);
+  const maxTotalScore = calculateMaxTotalScore(evaluatedKeys);
+  return { totalScore, maxTotalScore };
+});
+
+const total = totalScoresAndMaxes.reduce((sum, item) => sum + item.totalScore, 0);
+const totalMax = totalScoresAndMaxes.reduce((sum, item) => sum + item.maxTotalScore, 0);
+
+return totalMax > 0 ? Math.round((total / totalMax) * 100) : 0;
     }
     
     return 0;
@@ -135,9 +137,15 @@ const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
   return rep;
 }, {});
 
-      // حساب الإجمالي الكلي والنسبة المئوية
-      report.total_score = Object.values(report).reduce((sum, score) => sum + score, 0);
-      report.percentage = Math.round((report.total_score / calculateMaxTotalScore()) * 100);
+// تحديد العناصر التي تم تقييمها في التقرير الأسبوعي (المتوسطات غير الصفرية)
+const evaluatedKeys = Object.keys(report).filter(key => key.endsWith('_score') && report[key] !== null);
+
+// حساب الدرجة العظمى ديناميكياً بناءً على هذه العناصر
+const maxTotalScore = calculateMaxTotalScore(evaluatedKeys);
+
+// حساب الإجمالي الكلي والنسبة المئوية بناءً على الدرجة العظمى الديناميكية
+report.total_score = Object.values(report).reduce((sum, score) => sum + score, 0);
+report.percentage = maxTotalScore > 0 ? Math.round((report.total_score / maxTotalScore) * 100) : 0;
 
       // جمع ملاحظات المعلمين
       const allNotes = dailyAssessments

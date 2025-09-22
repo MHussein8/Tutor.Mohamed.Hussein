@@ -61,9 +61,15 @@ export const getWeeklyReport = async (studentId, weekStartDate) => {
     return rep;
   }, {});
 
-  // حساب الإجمالي الكلي والنسبة المئوية
-  report.total_score = Object.values(report).reduce((sum, score) => sum + score, 0);
-  report.percentage = Math.round((report.total_score / calculateMaxTotalScore()) * 100);
+// تحديد عناصر التقييم التي لها درجة متوسطة محسوبة (ليست null)
+const evaluatedKeys = Object.keys(report).filter(key => key.endsWith('_score') && report[key] !== null);
+
+// حساب الدرجة العظمى الديناميكية بناءً على العناصر المقيمة
+const maxTotalScore = calculateMaxTotalScore(evaluatedKeys);
+
+// حساب الإجمالي الكلي والنسبة المئوية بناءً على الدرجة العظمى الديناميكية
+report.total_score = Object.values(report).reduce((sum, score) => sum + (score || 0), 0);
+report.percentage = maxTotalScore > 0 ? Math.round((report.total_score / maxTotalScore) * 100) : 0;
 
   return report;
 };

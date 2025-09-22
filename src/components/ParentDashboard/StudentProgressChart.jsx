@@ -1,5 +1,5 @@
 import React from 'react';
-import { MAX_SCORES, calculateMaxTotalScore } from '../../config/assessmentConfig';
+import { calculateMaxTotalScore } from '../../config/assessmentConfig';
 import {
   BarChart,
   Bar,
@@ -22,13 +22,19 @@ const StudentProgressChart = ({ dailyAssessments }) => {
 
   // تحويل البيانات لتتناسب مع المخطط
 const chartData = dailyAssessments.slice(0, 7).map(assessment => {
-  const totalScore = Object.keys(MAX_SCORES).reduce((sum, key) => {
-    return sum + (assessment[key] || 0);
-  }, 0);
-  
-    console.log("Assessment:", assessment);
-  console.log("Total Score:", totalScore);
-  const percentage = Math.round((totalScore / calculateMaxTotalScore()) * 100);
+// تحديد مفاتيح الدرجات التي تم تقييمها فقط
+const evaluatedKeys = Object.keys(assessment).filter(key => key.endsWith('_score') && assessment[key] !== null);
+
+// حساب المجموع الإجمالي للدرجات المحققة
+const totalScore = evaluatedKeys.reduce((sum, key) => {
+  return sum + (assessment[key] || 0);
+}, 0);
+
+// حساب الدرجة العظمى ديناميكياً بناءً على العناصر المقيمة
+const maxTotalScore = calculateMaxTotalScore(evaluatedKeys);
+
+// حساب النسبة المئوية بناءً على الدرجة العظمى الديناميكية
+const percentage = maxTotalScore > 0 ? Math.round((totalScore / maxTotalScore) * 100) : 0;
 
   return {
     name: new Date(assessment.lesson_date).toLocaleDateString('ar-EG', {

@@ -27,9 +27,17 @@ export const SKILL_PRIORITY = {
 };
 
 /**
- * دالة تحسب المجموع الأقصى للدرجات بناءً على القيم المحددة أعلاه.
- * هذا يجعل النظام ديناميكياً ويتكيف مع أي تغيير في الدرجات.
+ * دالة ديناميكية تحسب المجموع الأقصى للدرجات بناءً على قائمة العناصر التي تم تقييمها فقط.
+ *
+ * @param {string[]} evaluatedScores - مصفوفة بأسماء عناصر التقييم التي تم إعطاؤها درجة.
+ * @returns {number} المجموع الأقصى للدرجات بناءً على العناصر المقيمة.
  */
-export const calculateMaxTotalScore = () => {
-  return Object.values(MAX_SCORES).reduce((total, score) => total + score, 0);
+export const calculateMaxTotalScore = (evaluatedScores) => {
+  let maxTotal = 0;
+  for (const scoreName of evaluatedScores) {
+    if (MAX_SCORES.hasOwnProperty(scoreName)) {
+      maxTotal += MAX_SCORES[scoreName];
+    }
+  }
+  return maxTotal;
 };
