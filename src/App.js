@@ -43,6 +43,8 @@ function App() {
   return (
     <div className="App">
       <Routes>
+         {/* هذا هو المسار الجديد للصفحة الرئيسية */}
+  <Route path="/" element={<TeacherLogin />} />
         {/* مسارات المعلم (الواجهة الأساسية) */}
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         <Route path="/assessments" element={<DailyAssessmentReportPage />} /> 
