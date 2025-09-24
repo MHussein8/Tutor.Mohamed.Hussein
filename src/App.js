@@ -10,6 +10,7 @@ import StudentAssessmentsPage from './pages/StudentAssessmentsPage';
 import ParentDashboard from './pages/ParentDashboard';
 import ParentLogin from './pages/ParentLogin';
 import AddParentPage from './pages/AddParentPage';
+import TeacherLogin from './pages/TeacherLogin';
 import './App.css';
 
 function App() {
@@ -43,13 +44,14 @@ function App() {
     <div className="App">
       <Routes>
         {/* مسارات المعلم (الواجهة الأساسية) */}
-        <Route path="/" element={<TeacherDashboard />} />
+        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         <Route path="/assessments" element={<DailyAssessmentReportPage />} /> 
         <Route path="/daily-assessment" element={<DailyAssessmentPage />} />
         <Route path="/weekly-report" element={<WeeklyReportPage />} />
         <Route path="/lessons-management" element={<LessonsManagementPage />} />
         <Route path="/students" element={<StudentsPage />} />
         <Route path="/student-assessments/:studentId" element={<StudentAssessmentsPage />} />
+        <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/add-parent-student" element={<AddParentPage />} />
 
         {/* مسارات ولي الأمر */}

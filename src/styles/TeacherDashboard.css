@@ -38,20 +38,24 @@ body {
 }
 
 .sidebar-component {
-  width: 280px; /* عرض ثابت */
-  min-width: 280px; /* لضمان عدم التغير */
-  max-width: 280px; /* لضمان عدم التغير */
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
   background-color: var(--card-bg);
-  box-shadow: var(--shadow-md); /* ظل أكثر أناقة */
+  box-shadow: var(--shadow-md);
   padding: 30px 20px;
   display: flex;
   flex-direction: column;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   height: 100vh;
-  border-left: 1px solid var(--border-color); /* حدود ناعمة */
-  flex-shrink: 0; /* تأكد أن الحجم لا يتقلص */
-  flex-grow: 0;   /* تأكد أن الحديد لا يتمدد  */
+   justify-content: space-between;
+  border-left: 1px solid var(--border-color);
+  flex-shrink: 0;
+  flex-grow: 0;
+  z-index: 1000;
+  overflow-y: auto; /* ✅ هذا هو الحل - يضيف سكرول */
 }
 
 .sidebar-logo {
@@ -68,7 +72,8 @@ body {
 }
 
 .sidebar-nav {
-  flex-grow: 1;
+  flex: 1; /* يأخذ المساحة المتاحة */
+  overflow-y: auto; /* يسمح بالسكرول إذا المحتوى طويل */
 }
 
 .nav-list {
@@ -875,8 +880,12 @@ body {
     top: 0;
     right: -280px;
     height: 100vh;
+    justify-content: flex-start;
     z-index: 1000;
     transition: right 0.3s ease;
+    width: 100%;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
   }
   
   .sidebar-component.sidebar-open {
@@ -885,14 +894,6 @@ body {
   
   .dashboard-layout {
     flex-direction: column;
-  }
-  .sidebar-component { /* بدلاً من .sidebar-container */
-    width: 100%;
-    position: static;
-    height: auto;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color);
-    /* باقي التنسيقات */
   }
 }
 
@@ -958,6 +959,19 @@ body {
   }
   .score-inputs-grid-new {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+    .sidebar-component {
+    position: fixed;
+    top: 0;
+    right: -280px;
+    height: 100vh;
+    justify-content: flex-start;
+    z-index: 1000;
+    transition: right 0.3s ease;
+    width: 100%;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
   }
 }
 
@@ -1027,4 +1041,28 @@ body {
   .filter-select {
     min-width: auto;
   }
+}
+
+.sidebar-footer {
+  margin-top: auto; /* هذا يخليه يلتصق بالأسفل */
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.logout-btn {
+  width: 100%;
+  background: #ff4757;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.logout-btn:hover {
+  background: #ff3742;
 }

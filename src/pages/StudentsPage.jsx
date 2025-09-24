@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { getCurrentTeacherId } from '../services/teacherService';
 import Sidebar from '../components/Sidebar';
 import AddStudentModal from '../components/AddStudentModal';
 import AddParentModal from '../components/AddParentModal';
@@ -9,6 +10,8 @@ import '../styles/StudentsPage.css';
 
 const StudentsPage = () => {
   const navigate = useNavigate();
+    localStorage.setItem('current_teacher_id', '1');
+
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,11 +45,9 @@ const StudentsPage = () => {
     fetchStudents();
   }, []);
 
-  useEffect(() => {
-    if (students.length > 0) {
-      fetchFilterOptions();
-    }
-  }, [students]);
+useEffect(() => {
+  fetchFilterOptions();
+}, []);
 
   const fetchFilterOptions = async () => {
     try {
@@ -80,9 +81,18 @@ const StudentsPage = () => {
 const fetchStudents = async () => {
   try {
     setLoading(true);
+    
+    // جلب teacher_id الخاص بالمدرس الحالي
+    const currentTeacherId = await getCurrentTeacherId();
+    if (!currentTeacherId) {
+      console.error('لا يمكن تحديد هوية المدرس');
+      return;
+    }
+    
     const { data: studentsData, error } = await supabase
       .from('students')
       .select('*')
+      .eq('teacher_id', currentTeacherId)
       .order('first_name');
 
     if (error) throw error;

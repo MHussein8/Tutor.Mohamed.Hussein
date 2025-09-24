@@ -1,6 +1,7 @@
 // AddStudentModal.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { getCurrentTeacherId } from '../services/teacherService';
 import '../styles/AddStudentModal.css';
 
 const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
@@ -75,11 +76,19 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
         return;
       }
       
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        setError('خطأ في تحديد هوية المدرس');
+        setLoading(false);
+        return;
+      }
+
       const { data, error: insertError } = await supabase
         .from('students')
         .insert([{
           ...formData,
-          birth_date: formData.birth_date || null
+          birth_date: formData.birth_date || null,
+          teacher_id: currentTeacherId
         }])
         .select(`*, grade_levels (name)`);
 

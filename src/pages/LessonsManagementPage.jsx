@@ -1,6 +1,7 @@
 // LessonsManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { getCurrentTeacherId } from '../services/teacherService';
 import Sidebar from '../components/Sidebar';
 import AddLessonModal from '../components/AddLessonModal';
 import '../styles/LessonsManagement.css';
@@ -20,6 +21,12 @@ const LessonsManagementPage = () => {
 
   const fetchLessons = async () => {
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        console.error('لا يمكن تحديد هوية المدرس');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('lessons')
         .select(`
@@ -34,6 +41,7 @@ const LessonsManagementPage = () => {
           group_types (name),
           grade_levels (name)
         `)
+        .eq('teacher_id', currentTeacherId)
         .order('lesson_date', { ascending: false });
 
       if (error) throw error;
@@ -49,6 +57,24 @@ const LessonsManagementPage = () => {
     if (!window.confirm('هل أنت متأكد من حذف هذه الحصة؟')) return;
 
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        alert('خطأ في تحديد هوية المستخدم');
+        return;
+      }
+
+      // التحقق من أن الحصة تخص المدرس الحالي قبل الحذف
+      const { data: lesson, error: checkError } = await supabase
+        .from('lessons')
+        .select('teacher_id')
+        .eq('id', lessonId)
+        .single();
+
+      if (checkError || lesson.teacher_id !== currentTeacherId) {
+        alert('غير مصرح بحذف هذه الحصة');
+        return;
+      }
+
       const { error } = await supabase
         .from('lessons')
         .delete()

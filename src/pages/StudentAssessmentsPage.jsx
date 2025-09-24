@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MAX_SCORES } from '../config/assessmentConfig';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
+import { getCurrentTeacherId } from '../services/teacherService';
 import Sidebar from '../components/Sidebar';
 import '../styles/TeacherDashboard.css';
 import '../styles/DailyAssessmentReportPage.css'; // استخدام نفس التنسيقات
@@ -28,24 +29,33 @@ const StudentAssessmentsPage = () => {
       setLoading(true);
       try {
         // جلب بيانات الطالب
+        const currentTeacherId = await getCurrentTeacherId();
+        if (!currentTeacherId) {
+          console.error('لا يمكن تحديد هوية المدرس');
+          return;
+        }
+
+        // جلب بيانات الطالب مع التحقق من teacher_id
         const { data: studentData, error: studentError } = await supabase
           .from('students')
-          .select('first_name, last_name')
+          .select('first_name, last_name, teacher_id')
           .eq('id', studentId)
+          .eq('teacher_id', currentTeacherId)
           .single();
 
         if (studentError) throw studentError;
         setStudent(studentData);
 
-        // جلب جميع التقييمات لهذا الطالب
-const { data: assessmentsData, error: assessmentsError } = await supabase
-  .from('daily_assessments')
-  .select(`
-    *,
-    lessons (title, lesson_date)
-  `)
-  .eq('student_id', studentId)
-  .order('lesson_date', { ascending: false });
+        // جلب جميع التقييمات لهذا الطالب مع فلتر teacher_id
+        const { data: assessmentsData, error: assessmentsError } = await supabase
+          .from('daily_assessments')
+          .select(`
+            *,
+            lessons (title, lesson_date)
+          `)
+          .eq('student_id', studentId)
+          .eq('teacher_id', currentTeacherId)
+          .order('lesson_date', { ascending: false });
 
         if (assessmentsError) throw assessmentsError;
         setAssessments(assessmentsData);
@@ -82,7 +92,7 @@ const { data: assessmentsData, error: assessmentsError } = await supabase
                 <p>هنا تجد جميع التقييمات اليومية الخاصة بهذا الطالب.</p>
               </>
             ) : (
-              <h1>لم يتم العثور على الطالب</h1>
+              <h1>الطالب غير موجود أو غير مسموح بالوصول</h1>
             )}
           </div>
           

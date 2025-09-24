@@ -1,6 +1,8 @@
 // DailyAssessmentPage.jsx
 import React, { useState } from 'react';
 import DailyAssessmentForm from '../components/DailyAssessmentForm';
+import { getCurrentTeacherId } from '../services/teacherService';
+
 import Sidebar from '../components/Sidebar';
 import '../styles/TeacherDashboard.css';
 
@@ -15,7 +17,7 @@ const DailyAssessmentPage = () => {
           <h1>صفحة التقييم اليومي</h1>
           <p>قيم طلابك بعد الحصة مباشرة</p>
         </div>
-        <DailyAssessmentForm />
+        <DailyAssessmentForm getCurrentTeacherId={getCurrentTeacherId} />
       </div>
     </div>
   );

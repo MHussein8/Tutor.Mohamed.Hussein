@@ -10,6 +10,8 @@ import Sidebar from '../components/Sidebar';
 import TeacherMessagesList from '../components/TeacherDashboard/TeacherMessagesList';
 import TeacherReplyForm from '../components/TeacherDashboard/TeacherReplyForm';
 import teacherMessageService from '../services/teacherMessageService';
+import { getCurrentTeacherId } from '../services/teacherService';
+
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -52,9 +54,13 @@ const [searchTerm, setSearchTerm] = useState('');
   const loadParentMessages = async () => {
     setLoadingMessages(true);
     try {
-      const teacherId = 1;
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        console.error('لا يمكن تحديد هوية المدرس');
+        return;
+      }
       
-      const messages = await teacherMessageService.getTeacherMessages(teacherId);
+      const messages = await teacherMessageService.getTeacherMessages(currentTeacherId);
       setParentMessages(messages);
       
     } catch (error) {
@@ -171,6 +177,12 @@ const calculateTotalScore = (assessment) => {
 
   const fetchDashboardData = async () => {
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        console.error('لا يمكن تحديد هوية المدرس');
+        return;
+      }
+
       const { data: studentsData, count: studentsCount } = await supabase
         .from('students')
         .select(`
@@ -178,6 +190,7 @@ const calculateTotalScore = (assessment) => {
           grade_levels (*),
           group_types (*)
         `, { count: 'exact' })
+        .eq('teacher_id', currentTeacherId)
         .order('first_name');
 
 const today = new Date();
@@ -198,6 +211,7 @@ endOfWeek.setHours(23, 59, 59, 999);
       const { data: dailyAssessments } = await supabase
         .from('daily_assessments')
         .select('*')
+        .eq('teacher_id', currentTeacherId)
         .gte('lesson_date', startOfWeek.toISOString())
         .lte('lesson_date', endOfWeek.toISOString());
 
@@ -238,6 +252,7 @@ weeklyAverage = totalMaxPossibleScore > 0
             .from('daily_assessments')
             .select('*')
             .eq('student_id', student.id)
+            .eq('teacher_id', currentTeacherId)
             .order('lesson_date', { ascending: false })
             .limit(1)
             .single();
@@ -252,6 +267,7 @@ weeklyAverage = totalMaxPossibleScore > 0
       const { count: weeklyAssessmentsCount } = await supabase
         .from('daily_assessments')
         .select('*', { count: 'exact' })
+        .eq('teacher_id', currentTeacherId)
         .gte('lesson_date', startOfWeek.toISOString())
         .lte('lesson_date', endOfWeek.toISOString());
 

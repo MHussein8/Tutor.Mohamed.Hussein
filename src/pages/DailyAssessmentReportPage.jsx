@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 import { supabase } from '../services/supabase';
+import { getCurrentTeacherId } from '../services/teacherService';
 import Sidebar from '../components/Sidebar';
 import '../styles/TeacherDashboard.css';
 import '../styles/DailyAssessmentReportPage.css';
@@ -63,9 +64,13 @@ const calculateStats = useCallback((assessments) => {
 
   const fetchLessons = useCallback(async () => {
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) return;
+
       const { data, error } = await supabase
         .from('lessons')
         .select('id, title, lesson_date')
+        .eq('teacher_id', currentTeacherId)
         .order('lesson_date', { ascending: false });
 
       if (error) throw error;
@@ -82,13 +87,17 @@ const calculateStats = useCallback((assessments) => {
   const fetchDailyAssessments = useCallback(async () => {
     setLoading(true);
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) return;
+
       const { data, error } = await supabase
         .from('daily_assessments')
         .select(`
           *,
           students (id, first_name, last_name)
         `)
-        .eq('lesson_id', selectedLessonId);
+        .eq('lesson_id', selectedLessonId)
+        .eq('teacher_id', currentTeacherId);
       
       if (error) throw error;
       setDailyAssessments(data || []);

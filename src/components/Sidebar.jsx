@@ -5,7 +5,7 @@ import '../styles/TeacherDashboard.css';
 const Sidebar = ({ activeTab, isSidebarOpen, setIsSidebarOpen }) => {
   const sidebarRef = useRef(null);
   const navItems = [
-    { id: 'dashboard', label: 'لوحة التحكم', icon: '📊', path: '/' },
+    { id: 'dashboard', label: 'لوحة التحكم', icon: '📊', path: '/teacher-dashboard' },
     { id: 'students', label: 'الطلاب', icon: '👨‍🎓', path: '/students' },
     { id: 'assessments', label: 'التقييمات', icon: '📝', path: '/assessments' },
     { id: 'classes', label: 'الحصص', icon: '🏫', path: '/lessons-management' },
@@ -63,6 +63,19 @@ const Sidebar = ({ activeTab, isSidebarOpen, setIsSidebarOpen }) => {
             ))}
           </ul>
         </nav>
+                {/* زر تسجيل الخروج - أضف هذا الجزء */}
+        <div className="sidebar-footer">
+          <button 
+            className="logout-btn"
+            onClick={() => {
+              localStorage.removeItem('current_teacher_id');
+               window.location.href = '/teacher-login';
+            }}
+          >
+            <span className="nav-icon">🚪</span>
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
       </div>
       
       <button onClick={toggleSidebar} className="toggle-btn">

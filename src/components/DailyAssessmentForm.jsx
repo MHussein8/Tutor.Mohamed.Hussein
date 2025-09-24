@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { MAX_SCORES } from '../config/assessmentConfig';
+import { getCurrentTeacherId } from '../services/teacherService';
 import '../styles/TeacherDashboard.css';
 
 const DailyAssessmentForm = () => {
@@ -36,6 +37,9 @@ const calculatePercentage = () => {
 
   const fetchLessons = async () => {
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) return;
+
       const { data, error } = await supabase
         .from('lessons')
         .select(`
@@ -44,13 +48,10 @@ const calculatePercentage = () => {
           lesson_date, 
           education_type_id,
           grade_level_id,
-          group_types (
-            name
-          ),
-          grade_levels (
-            name
-          )
+          group_types (name),
+          grade_levels (name)
         `)
+        .eq('teacher_id', currentTeacherId)
         .order('lesson_date', { ascending: false });
 
       if (error) throw error;
@@ -87,11 +88,18 @@ const calculatePercentage = () => {
         return;
       }
 
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        setMessage('خطأ في تحديد هوية المدرس');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('students')
         .select('id, first_name, last_name, grade_level_id, education_type_id')
         .eq('grade_level_id', lessonData.grade_level_id)
         .eq('education_type_id', lessonData.education_type_id)
+        .eq('teacher_id', currentTeacherId)
         .order('first_name');
 
       if (error) {
@@ -153,13 +161,20 @@ const handleScoreChange = (key, value) => {
 const lessonDate = lesson.lesson_date;
 
 
-const assessmentData = {
-  student_id: parseInt(selectedStudentId),
-  lesson_id: parseInt(selectedLessonId),
-  lesson_date: lessonDate,
-  created_at: new Date().toISOString(),
-  teacher_notes: teacherNotes
-};
+    const currentTeacherId = await getCurrentTeacherId();
+    if (!currentTeacherId) {
+      alert('خطأ في تحديد هوية المدرس');
+      return;
+    }
+
+    const assessmentData = {
+      student_id: parseInt(selectedStudentId),
+      lesson_id: parseInt(selectedLessonId),
+      lesson_date: lessonDate,
+      created_at: new Date().toISOString(),
+      teacher_notes: teacherNotes,
+      teacher_id: currentTeacherId
+    };
 
 // بس اضيف الحقول الي ليها قيم
 Object.keys(scores).forEach(key => {
@@ -173,6 +188,7 @@ Object.keys(scores).forEach(key => {
         .select('id')
         .eq('student_id', selectedStudentId)
         .eq('lesson_id', selectedLessonId)
+        .eq('teacher_id', currentTeacherId)
         .single();
       
       if (checkError && checkError.code !== 'PGRST116') {

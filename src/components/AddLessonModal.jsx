@@ -1,6 +1,7 @@
 // AddLessonModal.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { getCurrentTeacherId } from '../services/teacherService';
 import '../styles/AddLessonModal.css';
 
 const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
@@ -70,14 +71,33 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
     setLoading(true);
 
     try {
+      const currentTeacherId = await getCurrentTeacherId();
+      if (!currentTeacherId) {
+        alert('خطأ في تحديد هوية المدرس');
+        return;
+      }
+
       const lessonData = {
         ...formData,
-  lesson_date: formData.lesson_date, // تأكد من وجوده
-  start_time: formData.start_time + ':00',
-  end_time: formData.end_time + ':00'
+        lesson_date: formData.lesson_date,
+        start_time: formData.start_time + ':00',
+        end_time: formData.end_time + ':00',
+        teacher_id: currentTeacherId
       };
 
       if (lesson) {
+        // التحقق من أن الحصة تخص المدرس الحالي قبل التعديل
+        const { data: existingLesson, error: checkError } = await supabase
+          .from('lessons')
+          .select('teacher_id')
+          .eq('id', lesson.id)
+          .single();
+
+        if (checkError || existingLesson.teacher_id !== currentTeacherId) {
+          alert('غير مصرح بتعديل هذه الحصة');
+          return;
+        }
+
         const { error } = await supabase
           .from('lessons')
           .update(lessonData)

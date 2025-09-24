@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
 
 export const getTeacherStats = async () => {
   return { totalStudents: 25, averagePerformance: 85 };
@@ -26,10 +25,9 @@ export const getDailyAssessments = async () => {
 };
 
 export const getWeeklyReport = async (studentId, weekStartDate) => {
-  // تحديد بداية ونهاية الأسبوع (السبت إلى الجمعة)
   const startOfWeek = new Date(weekStartDate);
   const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6); // السبت + 6 أيام = الجمعة
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
 
   const { data: dailyAssessments, error } = await supabase
     .from('daily_assessments')
@@ -45,31 +43,39 @@ export const getWeeklyReport = async (studentId, weekStartDate) => {
     return null;
   }
 
-  // حساب الإجماليات لكل فئة باستخدام MAX_SCORES
-  const totals = dailyAssessments.reduce((acc, assessment) => {
-    return Object.keys(MAX_SCORES).reduce((newAcc, key) => {
-      newAcc[key] = (newAcc[key] || 0) + (assessment[`${key}_score`] || 0);
-      return newAcc;
-    }, acc);
-  }, {});
+  const evaluatedTotals = {};
+  dailyAssessments.forEach(assessment => {
+    Object.keys(assessment).forEach(key => {
+      if (key.endsWith('_score') && assessment[key] !== null && assessment[key] !== undefined) {
+        if (!evaluatedTotals[key]) {
+          evaluatedTotals[key] = { sum: 0, count: 0 };
+        }
+        evaluatedTotals[key].sum += assessment[key];
+        evaluatedTotals[key].count += 1;
+      }
+    });
+  });
 
-  const daysCount = dailyAssessments.length;
-  
-  // إنشاء التقرير بحساب متوسط كل فئة
-  const report = Object.keys(MAX_SCORES).reduce((rep, key) => {
-    rep[`${key}_score`] = Math.round(totals[key] / daysCount);
-    return rep;
-  }, {});
-
-// تحديد عناصر التقييم التي لها درجة متوسطة محسوبة (ليست null)
-const evaluatedKeys = Object.keys(report).filter(key => key.endsWith('_score') && report[key] !== null);
-
-// حساب الدرجة العظمى الديناميكية بناءً على العناصر المقيمة
-const maxTotalScore = calculateMaxTotalScore(evaluatedKeys);
-
-// حساب الإجمالي الكلي والنسبة المئوية بناءً على الدرجة العظمى الديناميكية
-report.total_score = Object.values(report).reduce((sum, score) => sum + (score || 0), 0);
-report.percentage = maxTotalScore > 0 ? Math.round((report.total_score / maxTotalScore) * 100) : 0;
+  const report = {};
+  Object.keys(evaluatedTotals).forEach(key => {
+    report[key] = evaluatedTotals[key].sum;
+  });
 
   return report;
+};
+
+export const getCurrentTeacherId = async () => {
+  // إرجع لطريقة localStorage الآمنة
+  const teacherId = localStorage.getItem('current_teacher_id');
+  
+  if (teacherId) {
+    return parseInt(teacherId);
+  }
+  
+  // إذا مفيش teacher_id في localStorage، إرجع 1 (أنت)
+  return 1;
+};
+
+export const logoutTeacher = () => {
+  localStorage.removeItem('current_teacher_id');
 };
