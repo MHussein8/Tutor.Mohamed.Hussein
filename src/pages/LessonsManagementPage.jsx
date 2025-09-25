@@ -1,4 +1,5 @@
 // LessonsManagementPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { getCurrentTeacherId } from '../services/teacherService';
@@ -63,7 +64,6 @@ const LessonsManagementPage = () => {
         return;
       }
 
-      // التحقق من أن الحصة تخص المدرس الحالي قبل الحذف
       const { data: lesson, error: checkError } = await supabase
         .from('lessons')
         .select('teacher_id')
@@ -105,27 +105,30 @@ const LessonsManagementPage = () => {
   );
 
   const totalLessons = lessons.length;
-const weeklyLessons = lessons.filter(lesson => {
-  const lessonDate = new Date(lesson.lesson_date);
-  const today = new Date();
-  const startOfWeek = new Date(today);
+
+  const weeklyLessons = lessons.filter(lesson => {
+    const lessonDate = new Date(lesson.lesson_date);
+    const today = new Date();
+    
+    // احسب اليوم الحالي كـ 0 للأحد و 6 للسبت
+    const dayOfWeek = today.getDay(); 
+    
+    // تحديد بداية الأسبوع (السبت)
+    const startOfWeek = new Date(today);
+    // إذا كان اليوم هو السبت، فببداية الأسبوع هو اليوم نفسه
+    // وإلا، عد للخلف حتى السبت
+    const daysToStart = dayOfWeek === 6 ? 0 : dayOfWeek + 1;
+    startOfWeek.setDate(today.getDate() - daysToStart);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    // تحديد نهاية الأسبوع (الجمعة)
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    return lessonDate >= startOfWeek && lessonDate <= endOfWeek;
+  }).length;
   
-  // احسب فرق الأيام بين اليوم والسبت
-  const dayOfWeek = today.getDay(); // 0-6 (الأحد-السبت)
-  const daysToSaturday = dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
-  
-  // اذهب لبداية الأسبوع (السبت)
-  startOfWeek.setDate(today.getDate() - daysToSaturday);
-  startOfWeek.setHours(0, 0, 0, 0);
-  
-  // اذهب لنهاية الأسبوع (الجمعة)
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
-  
-  // تحقق إذا كان تاريخ الحصة بين السبت والجمعة
-  return lessonDate >= startOfWeek && lessonDate <= endOfWeek;
-}).length;
   const todayLessons = lessons.filter(lesson => {
     const lessonDate = new Date(lesson.lesson_date);
     const today = new Date();

@@ -194,18 +194,18 @@ const calculateTotalScore = (assessment) => {
         .order('first_name');
 
 const today = new Date();
-const dayOfWeek = today.getDay(); // 0 = الأحد، 1 = الاثنين، ... 6 = السبت
+      const dayOfWeek = today.getDay(); // 0 = الأحد, 6 = السبت
+      
+      // منطق صحيح لحساب بداية الأسبوع (السبت)
+      const startOfWeek = new Date(today);
+      const daysToSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1);
+      startOfWeek.setDate(today.getDate() - daysToSaturday);
+      startOfWeek.setHours(0, 0, 0, 0);
 
-// حساب بداية الأسبوع (السبت) بشكل صحيح
-const startOfWeek = new Date(today);
-const daysSinceSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1) % 7;
-startOfWeek.setDate(today.getDate() - daysSinceSaturday);
-startOfWeek.setHours(0, 0, 0, 0);
-
-// حساب نهاية الأسبوع (الجمعة)
-const endOfWeek = new Date(startOfWeek);
-endOfWeek.setDate(startOfWeek.getDate() + 6); // السبت + 6 أيام = الجمعة
-endOfWeek.setHours(23, 59, 59, 999);
+      // حساب نهاية الأسبوع (الجمعة)
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
 
 
       const { data: dailyAssessments } = await supabase
@@ -273,7 +273,8 @@ weeklyAverage = totalMaxPossibleScore > 0
 
 const { data: allLessons } = await supabase
   .from('lessons')
-  .select('lesson_date');
+  .select('lesson_date')
+  .eq('teacher_id', currentTeacherId); // ✅ هكذا أصبحت السطور متصلة
 
 const weeklyClassesCount = allLessons.filter(lesson => {
   const lessonDate = new Date(lesson.lesson_date);

@@ -176,11 +176,13 @@ const SKILL_NAMES = {
     }
   };
 
-  const getWeekDates = (startDate) => {
-    const start = new Date(startDate);
+const getWeekDates = (startDate) => {
+    // هذه الطريقة تضمن إنشاء التاريخ بالتوقيت المحلي لكي لا يحدث انحراف في اليوم
+    const [year, month, day] = startDate.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    
+
     return {
       start: formatDate(start),
       end: formatDate(end)

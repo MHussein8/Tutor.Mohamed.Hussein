@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase';
+import { getCurrentTeacherId } from '../../services/teacherService';
 import '../../styles/AddStudentToParentModal.css';
 
 const AddStudentToParentModal = ({ isOpen, onClose, parentId, onStudentAdded }) => {
@@ -73,14 +74,24 @@ const AddStudentToParentModal = ({ isOpen, onClose, parentId, onStudentAdded }) 
       }
       
       // 1. إضافة الطالب الجديد
-      const { data: student, error: studentError } = await supabase
+            // 💥 إضافة الكود لجلب teacher_id والتحقق منه
+      const teacherId = await getCurrentTeacherId();
+
+      if (teacherId === null) {
+          throw new Error('Teacher ID not found. Please log in as a teacher to complete this action.');
+      }
+      // 💥 نهاية إضافة الكود
+      
+      // 1. إضافة الطالب الجديد
+      const { data: student, error: studentError } = await supabase
         .from('students')
         .insert([{
           first_name: formData.first_name,
           last_name: formData.last_name,
           birth_date: formData.birth_date || null,
           education_type_id: formData.education_type_id,
-          grade_level_id: formData.grade_level_id
+          grade_level_id: formData.grade_level_id,
+          teacher_id: teacherId
         }])
         .select()
         .single();

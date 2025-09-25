@@ -66,11 +66,13 @@ const calculateStats = useCallback((assessments) => {
     try {
       const currentTeacherId = await getCurrentTeacherId();
       if (!currentTeacherId) return;
+      const teacherId = getCurrentTeacherId();
+
 
       const { data, error } = await supabase
         .from('lessons')
         .select('id, title, lesson_date')
-        .eq('teacher_id', currentTeacherId)
+        .eq('teacher_id', teacherId)
         .order('lesson_date', { ascending: false });
 
       if (error) throw error;
@@ -89,6 +91,7 @@ const calculateStats = useCallback((assessments) => {
     try {
       const currentTeacherId = await getCurrentTeacherId();
       if (!currentTeacherId) return;
+const teacherId = getCurrentTeacherId();
 
       const { data, error } = await supabase
         .from('daily_assessments')
@@ -97,7 +100,7 @@ const calculateStats = useCallback((assessments) => {
           students (id, first_name, last_name)
         `)
         .eq('lesson_id', selectedLessonId)
-        .eq('teacher_id', currentTeacherId);
+        .eq('teacher_id', teacherId)
       
       if (error) throw error;
       setDailyAssessments(data || []);

@@ -10,8 +10,6 @@ import '../styles/StudentsPage.css';
 
 const StudentsPage = () => {
   const navigate = useNavigate();
-    localStorage.setItem('current_teacher_id', '1');
-
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,7 +89,7 @@ const fetchStudents = async () => {
     
     const { data: studentsData, error } = await supabase
       .from('students')
-      .select('*')
+.select(`*, group_types (name), grade_levels (name)`)
       .eq('teacher_id', currentTeacherId)
       .order('first_name');
 

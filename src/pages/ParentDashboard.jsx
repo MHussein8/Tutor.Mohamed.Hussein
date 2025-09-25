@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useCallback } from 'react';
-import { MAX_SCORES, calculateMaxTotalScore } from '../config/assessmentConfig';
+import { MAX_SCORES } from '../config/assessmentConfig';
 import { parentService } from '../services/parentService';
 import parentMessageService from '../services/parentMessageService';
 import ParentStatsGrid from '../components/ParentDashboard/ParentStatsGrid';
@@ -15,7 +15,8 @@ const getCurrentWeek = () => {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = الأحد, 6 = السبت
   const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - (dayOfWeek + 1) % 7); // الرجوع للسبت
+  const daysToSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1);
+  startOfWeek.setDate(today.getDate() - daysToSaturday);
   startOfWeek.setHours(0, 0, 0, 0);
   return startOfWeek.toISOString().split('T')[0];
 };
@@ -68,11 +69,25 @@ const calculateProgress = async (studentId) => {
     if (lastTwoAssessments.length < 2) return 0;
 
     const [current, previous] = lastTwoAssessments;
+    
+    // 1. تحديد المهارات التي تم تقييمها في آخر تقييمين
+    const evaluatedKeys = new Set();
+    Object.keys(MAX_SCORES).forEach(key => {
+      if ((current[key] !== null && current[key] !== undefined) || (previous[key] !== null && previous[key] !== undefined)) {
+        evaluatedKeys.add(key);
+      }
+    });
 
-    const currentPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => sum + (current[key] || 0), 0);
-    const previousPerformance = Object.keys(MAX_SCORES).reduce((sum, key) => sum + (previous[key] || 0), 0);
+    // 2. حساب الأداء من التقييم الحالي والسابق بناءً على المهارات المحددة
+    const currentPerformance = Array.from(evaluatedKeys).reduce((sum, key) => sum + (current[key] || 0), 0);
+    const previousPerformance = Array.from(evaluatedKeys).reduce((sum, key) => sum + (previous[key] || 0), 0);
 
-    const progress = ((currentPerformance - previousPerformance) / calculateMaxTotalScore()) * 100;
+    // 3. حساب المجموع الأقصى الصحيح بناءً على المهارات التي تم تقييمها فقط
+    const dynamicMaxScore = Array.from(evaluatedKeys).reduce((sum, key) => sum + MAX_SCORES[key], 0);
+
+    if (dynamicMaxScore === 0) return 0; // تجنب القسمة على صفر
+
+    const progress = ((currentPerformance - previousPerformance) / dynamicMaxScore) * 100;
     return Math.round(progress);
   } catch (error) {
     console.error('Error calculating progress:', error);
@@ -257,10 +272,13 @@ setWeeklyReport({
     setSelectedWeek(newWeek.toISOString().split('T')[0]);
   };
 
-  const handleDateChange = (e) => {
+const handleDateChange = (e) => {
     const selectedDate = new Date(e.target.value);
     const startOfWeek = new Date(selectedDate);
-    startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay() - 1);
+    const dayOfWeek = selectedDate.getDay(); // 0 = الأحد, 6 = السبت
+    const daysToSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1);
+    startOfWeek.setDate(selectedDate.getDate() - daysToSaturday);
+    startOfWeek.setHours(0, 0, 0, 0);
     setSelectedWeek(startOfWeek.toISOString().split('T')[0]);
   };
 
