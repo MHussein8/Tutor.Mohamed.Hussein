@@ -1588,3 +1588,13 @@ body {
 .weekly-plan-table tbody tr:nth-child(5) { animation-delay: 0.5s; }
 .weekly-plan-table tbody tr:nth-child(6) { animation-delay: 0.6s; }
 .weekly-plan-table tbody tr:nth-child(7) { animation-delay: 0.7s; }
+
+.header-buttons-group {
+    position: relative;
+    z-index: 100;
+}
+.logout-btn-new {
+    position: relative;
+    z-index: 101;
+    cursor: pointer;
+}
