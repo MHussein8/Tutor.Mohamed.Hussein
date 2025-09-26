@@ -9,6 +9,7 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
   const [educationTypes, setEducationTypes] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
+    homework: '',
     content: '',
     lesson_date: new Date().toISOString().slice(0, 10),
     start_time: '',
@@ -24,6 +25,7 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
       if (lesson) {
         setFormData({
           ...lesson,
+          homework: lesson.homework || '',
           start_time: lesson.start_time.slice(0, 5),
           end_time: lesson.end_time.slice(0, 5)
         });
@@ -31,6 +33,7 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
         setFormData({
           title: '',
           content: '',
+          homework: '',
           lesson_date: new Date().toISOString().slice(0, 10),
           start_time: '',
           end_time: '',
@@ -144,7 +147,16 @@ const AddLessonModal = ({ isOpen, onClose, onLessonAdded, lesson }) => {
               rows="3"
             />
           </div>
-
+          {/* 💥 التعديل رقم 4: إضافة حقل الواجب */}
+          <div className="form-group">
+            <label>الواجب المطلوب</label>
+            <textarea
+              value={formData.homework}
+              onChange={(e) => setFormData({...formData, homework: e.target.value})}
+              rows="3"
+              placeholder="اكتب تفاصيل الواجب هنا..."
+            />
+          </div>
           <div className="form-row">
             <div className="form-group">
               <label>تاريخ الحصة</label>

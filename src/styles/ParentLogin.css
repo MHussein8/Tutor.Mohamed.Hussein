@@ -1,3 +1,8 @@
+/* ======================================= */
+/* ParentLogin.css - مُعدّل لضمان العزل (Scoping) */
+/* ======================================= */
+
+/* 1. تنسيقات الحاوية الرئيسية (تبقى كما هي) */
 .parent-login-container {
     display: flex;
     justify-content: center;
@@ -16,6 +21,7 @@
     width: 100%;
     max-width: 450px;
     transition: transform 0.3s ease;
+    /* يجب إضافة الكلاس الأب لتنسيقات الدخول نفسها لمنع التسرب في بعض الحالات */
 }
 
 .login-form:hover {
@@ -44,11 +50,12 @@
     border-radius: 2px;
 }
 
-.form-group {
+/* 2. تنسيقات حقول النموذج (تم التخصيص/العزل) */
+.parent-login-container .form-group {
     margin-bottom: 1.8rem;
 }
 
-.form-group label {
+.parent-login-container .form-group label {
     display: block;
     margin-bottom: 0.8rem;
     font-weight: 600;
@@ -56,7 +63,7 @@
     font-size: 1.1rem;
 }
 
-.form-group input {
+.parent-login-container .form-group input {
     width: 100%;
     padding: 1rem 1.2rem;
     border: 2px solid #e2e8f0;
@@ -66,17 +73,18 @@
     box-sizing: border-box;
 }
 
-.form-group input:focus {
+.parent-login-container .form-group input:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.form-group input::placeholder {
+.parent-login-container .form-group input::placeholder {
     color: #a0aec0;
 }
 
-button {
+/* 3. تنسيقات الأزرار (تم التخصيص/العزل) */
+.parent-login-container button {
     width: 100%;
     padding: 1rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -90,23 +98,24 @@ button {
     box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
 }
 
-button:hover {
+.parent-login-container button:hover {
     transform: translateY(-2px);
     box-shadow: 0 7px 14px rgba(102, 126, 234, 0.4);
 }
 
-button:active {
+.parent-login-container button:active {
     transform: translateY(0);
 }
 
-button:disabled {
+.parent-login-container button:disabled {
     background: #cbd5e0;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
-.error-message {
+/* 4. تنسيقات إضافية (تم التخصيص/العزل) */
+.parent-login-container .error-message {
     color: #e53e3e;
     text-align: center;
     margin: 1.2rem 0;
@@ -117,69 +126,69 @@ button:disabled {
     font-weight: 500;
 }
 
-.login-help {
+.parent-login-container .login-help {
     text-align: center;
     margin-top: 2rem;
     padding-top: 1.5rem;
     border-top: 1px solid #e2e8f0;
 }
 
-.login-help p {
+.parent-login-container .login-help p {
     color: #718096;
     font-size: 0.95rem;
     margin: 0;
 }
 
-/* تنسيقات للهواتف */
+/* 5. تنسيقات الهواتف (تم التخصيص/العزل) */
 @media (max-width: 480px) {
     .parent-login-container {
         padding: 15px;
     }
     
-    .login-form {
+    .parent-login-container .login-form {
         padding: 2rem 1.5rem;
     }
     
-    .login-form h2 {
+    .parent-login-container .login-form h2 {
         font-size: 1.7rem;
     }
     
-    .form-group input {
+    .parent-login-container .form-group input {
         padding: 0.9rem 1rem;
     }
     
-    button {
+    .parent-login-container button {
         padding: 0.9rem;
     }
 }
 
-/* تأثيرات للعناصر عند التحميل */
+/* 6. تأثيرات (لا تحتاج لتخصيص إلا إذا كانت الكلاسات عامة) */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.login-form {
+.login-form { /* الكلاسlogin-form هو كلاس خاص بصفحة الدخول، لذا نتركه كما هو */
     animation: fadeIn 0.6s ease-out;
 }
 
-/* تخصيص شريط التمرير للمتصفحات التي تدعم ذلك */
-.form-group input::-webkit-input-placeholder {
+/* 7. تخصيص شريط التمرير (تم التخصيص/العزل) */
+.parent-login-container .form-group input::-webkit-input-placeholder {
     color: #a0aec0;
     font-size: 0.95rem;
 }
 
-.form-group input::-moz-placeholder {
+.parent-login-container .form-group input::-moz-placeholder {
     color: #a0aec0;
     font-size: 0.95rem;
 }
 
-.form-group input:-ms-input-placeholder {
+.parent-login-container .form-group input:-ms-input-placeholder {
     color: #a0aec0;
     font-size: 0.95rem;
 }
 
-.form-group input::-ms-input-placeholder {
+.parent-login-container .form-group input::-ms-input-placeholder {
     color: #a0aec0;
     font-size: 0.95rem;
 }

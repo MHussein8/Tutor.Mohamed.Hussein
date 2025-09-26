@@ -13,12 +13,16 @@ import '../styles/ParentDashboardMessages.css';
 // دالة مساعدة للحصول على الأسبوع الحالي
 const getCurrentWeek = () => {
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = الأحد, 6 = السبت
+  const day = today.getDay(); // 0 = الأحد ... 6 = السبت
+
+  // السبت = 6 → نحسب الفرق ونرجع لبداية الأسبوع
+  const diff = (day - 6 + 7) % 7;
+
   const startOfWeek = new Date(today);
-  const daysToSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1);
-  startOfWeek.setDate(today.getDate() - daysToSaturday);
+  startOfWeek.setDate(today.getDate() - diff);
   startOfWeek.setHours(0, 0, 0, 0);
-  return startOfWeek.toISOString().split('T')[0];
+
+  return startOfWeek.toLocaleDateString('en-CA');
 };
 
 // دالة عبقرية لتحديد لون شريط التقدم بناءً على الدرجة
@@ -34,6 +38,7 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
   const [students, setStudents] = useState([]);
   const [dailyAssessments, setDailyAssessments] = useState([]);
   const [weeklyReport, setWeeklyReport] = useState(null);
+  const [weeklyLessons, setWeeklyLessons] = useState([]);
   const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
   const [stats, setStats] = useState({
     performanceAverage: 0,
@@ -185,11 +190,21 @@ const progressPercentage = await calculateProgress(studentId);
     }
   }, [activeTab, fetchSentMessages]);
   
-  
+  // دالة جديدة لتحميل الدروس الأسبوعية
+const loadWeeklyLessons = async (studentId, weekDate) => {
+  try {
+    const lessonsData = await parentService.getWeeklyLessons(studentId, weekDate);
+    setWeeklyLessons(lessonsData || []);
+  } catch (error) {
+    console.error('Error loading weekly lessons:', error);
+    setWeeklyLessons([]);
+  }
+};
   useEffect(() => {
     if (selectedStudent) {
       loadWeeklyReport(selectedStudent, selectedWeek);
       loadParentMessages(selectedStudent);
+      loadWeeklyLessons(selectedStudent, selectedWeek);
     }
   }, [selectedStudent, selectedWeek]);
   
@@ -223,9 +238,14 @@ const progressPercentage = await calculateProgress(studentId);
 
 const loadWeeklyReport = async (studentId, weekDate) => {
   try {
-    const reportData = await parentService.getWeeklyReportFromDaily(studentId, weekDate);
-    
-    if (reportData) {
+     // استدعاء جلب تقارير التقييم والدروس الأسبوعية
+    const [reportData, lessonsData] = await Promise.all([
+      parentService.getWeeklyReportFromDaily(studentId, weekDate),
+      parentService.getWeeklyLessons(studentId, weekDate) // 👈 جلب الدروس
+     ]);
+     setWeeklyLessons(lessonsData || []); // 👈 تخزين دروس الأسبوع
+     
+     if (reportData) {
       // إعادة حساب المجموع والنسبة بناء على العناصر المتاحة فقط
       let totalScore = 0;
       let totalMax = 0;
@@ -274,21 +294,25 @@ setWeeklyReport({
 
 const handleDateChange = (e) => {
     const selectedDate = new Date(e.target.value);
-    const startOfWeek = new Date(selectedDate);
-    const dayOfWeek = selectedDate.getDay(); // 0 = الأحد, 6 = السبت
-    const daysToSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1);
-    startOfWeek.setDate(selectedDate.getDate() - daysToSaturday);
-    startOfWeek.setHours(0, 0, 0, 0);
-    setSelectedWeek(startOfWeek.toISOString().split('T')[0]);
-  };
+    const day = selectedDate.getDay(); // 0 = الأحد ... 6 = السبت
 
-  const getWeekRange = (weekDate) => {
-    const start = new Date(weekDate);
-    const end = new Date(weekDate);
-    end.setDate(end.getDate() + 6);
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return `${start.toLocaleDateString('ar-EG', options)} - ${end.toLocaleDateString('ar-EG', options)}`;
-  };
+    // السبت = 6 → نحسب الفرق ونرجع لبداية الأسبوع
+    const diff = (day - 6 + 7) % 7;
+
+    const startOfWeek = new Date(selectedDate);
+    startOfWeek.setDate(selectedDate.getDate() - diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    setSelectedWeek(startOfWeek.toLocaleDateString('en-CA'));
+};
+
+const getWeekRange = (weekDate) => {
+  const start = new Date(weekDate);
+  const end = new Date(weekDate);
+  end.setDate(end.getDate() + 6);
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return `${start.toLocaleDateString('ar-EG', options)} - ${end.toLocaleDateString('ar-EG', options)}`;
+};
 
   if (loading) {
     return (
@@ -306,9 +330,6 @@ const handleDateChange = (e) => {
     <div className="parent-dashboard-new">
       <div className="dashboard-header-new">
         <div className="header-top-bar-new">
-          <button onClick={onLogout} className="logout-btn-new">
-            تسجيل الخروج
-          </button>
         </div>
 
         <div className="header-main-content-new">
@@ -318,35 +339,42 @@ const handleDateChange = (e) => {
         
         {/* الحاوية الجديدة لرسالة الترحيب ومستطيل اختيار الطالب */}
         <div className="header-bottom-bar-new">
-          <span className="welcome-message-new">مرحباً، {parentUser?.name}</span>
-          <button 
-  className="add-student-btn-new"
-  onClick={() => setIsAddStudentModalOpen(true)}
->
-  <i className="fas fa-plus"></i>
-  إضافة طالب
-</button>
-          <div className="student-selector-new">
-            <div className="selector-wrapper-new">
-              <i className="icon-student">👨‍🎓</i>
-              <select
-                value={selectedStudent || ''}
-                onChange={(e) => handleStudentChange(parseInt(e.target.value))}
-                className="student-dropdown-new"
-              >
-                {students.map(student => (
-                  <option key={student.student_id} value={student.student_id}>
-                    {student.students?.first_name} {student.students?.last_name}
-                  </option>
-                ))}
-              </select>
+          <div className="header-controls-group">
+            <span className="welcome-message-new">مرحباً، {parentUser?.name}</span>
+
+            <div className="student-selector-new">
+              <div className="selector-wrapper-new">
+                <i className="icon-student">👨‍🎓</i>
+                <select
+                  value={selectedStudent || ''}
+                  onChange={(e) => handleStudentChange(parseInt(e.target.value))}
+                  className="student-dropdown-new"
+                >
+                  {students.map(student => (
+                    <option key={student.student_id} value={student.student_id}>
+                      {student.students?.first_name} {student.students?.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
+          
+          <div className="header-buttons-group">
+            <button onClick={onLogout} className="logout-btn-new">
+              تسجيل الخروج
+            </button>
+            <button 
+              className="add-student-btn-new"
+              onClick={() => setIsAddStudentModalOpen(true)}
+            >
+              <i className="fas fa-plus"></i>
+              إضافة طالب
+            </button>
+          </div>
         </div>
-
       </div>
-      <div className="dashboard-tabs-new">
-        <button
+      <div className="dashboard-tabs-new">        <button
           className={`tab-btn-new ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveTab('overview')}
         >
@@ -359,6 +387,13 @@ const handleDateChange = (e) => {
         >
           <i className="tab-icon">📝</i>
           <span>التقييمات</span>
+        </button>
+        <button
+          className={`tab-btn-new ${activeTab === 'weekly-plan' ? 'active' : ''}`}
+          onClick={() => setActiveTab('weekly-plan')}
+           >
+          <i className="tab-icon">📘</i> {/* 👈 تم توحيد الأيقونة في وسم i */}
+          <span>الخطة الأسبوعية</span> {/* 👈 تم توحيد النص في وسم span */}
         </button>
         <button
           className={`tab-btn-new ${activeTab === 'weekly-report' ? 'active' : ''}`}
@@ -703,6 +738,70 @@ const handleDateChange = (e) => {
             )}
           </div>
         )}
+{/* 💥 التبويب الجديد والفخم: الخطة الأسبوعية (weekly-plan) */}
+{activeTab === 'weekly-plan' && (
+  <div className="weekly-plan-container-new">
+    <h2 className="plan-main-title">🗺️ خطة الأسبوع الدراسي</h2>
+    <p className="plan-description">اطلع على الدروس والواجبات المخصصة لابنك/ابنتك لهذا الأسبوع.</p>
+
+    {/* إضافة عناصر التحكم بالأسبوع */}
+    <div className="week-selector-container-new">
+      <div className="week-navigation-new">
+        <button onClick={handlePreviousWeek} className="nav-btn-new">
+          <i className="fas fa-chevron-right"></i>
+          <span>الأسبوع السابق</span>
+        </button>
+        <div className="current-week-display-new">
+          {getWeekRange(selectedWeek)}
+        </div>
+        <button onClick={handleNextWeek} className="nav-btn-new">
+          <span>الأسبوع التالي</span>
+          <i className="fas fa-chevron-left"></i>
+        </button>
+      </div>
+    </div>
+
+    {weeklyLessons.length > 0 ? (
+      <div className="weekly-plan-table-container">
+        <table className="weekly-plan-table">
+          <thead>
+            <tr>
+              <th>اليوم</th>
+              <th>التاريخ</th>
+              <th>الدرس</th>
+              <th>الواجب</th>
+              <th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weeklyLessons.map((lesson, index) => (
+              <tr key={lesson.id} className={`day-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
+                <td className="day-name">{lesson.day_name}</td>
+                <td className="lesson-date">
+                  {new Date(lesson.lesson_date).toLocaleDateString('ar-EG')}
+                </td>
+                <td className="lesson-title">
+                  <div className="lesson-content">{lesson.title || '---'}</div>
+                </td>
+                <td className="lesson-homework">
+                  <div className="lesson-content">{lesson.homework || 'لا يوجد واجب'}</div>
+                </td>
+                <td className="lesson-notes">
+                  <div className="lesson-content">{lesson.notes || '---'}</div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div className="no-plan-new">
+        <div className="no-plan-icon">📘</div>
+        <p>لا توجد خطة دروس مُضافة لهذا الأسبوع حتى الآن.</p>
+      </div>
+    )}
+  </div>
+)}
         {activeTab === 'notes' && (
           <div className="notes-tab-new">
             <div className="tab-header-new">

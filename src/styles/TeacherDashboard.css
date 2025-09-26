@@ -1066,3 +1066,91 @@ body {
 .logout-btn:hover {
   background: #ff3742;
 }
+
+.dashboard-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 20px;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #95f5b5 0%, #8cf788 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.tab-btn {
+  padding: 18px 15px;
+  background: rgb(248, 247, 171);
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  text-align: center;
+  font-weight: 600;
+  color: #475569;
+  font-size: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.tab-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  color: #334155;
+}
+
+.tab-btn:hover::before {
+  transform: scaleX(1);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
+}
+
+.tab-btn.active::before {
+  background: white;
+  transform: scaleX(1);
+}
+
+.tab-btn.active:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 10px 35px rgba(59, 130, 246, 0.4);
+}
+
+/* تأثيرات إضافية للتميز */
+.dashboard-tabs-container {
+  position: relative;
+  margin: 20px 0;
+}
+
+.dashboard-tabs-container::before {
+  content: 'التنقل السريع';
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  background: #3b82f6;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}

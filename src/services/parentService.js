@@ -200,5 +200,63 @@ getMostImprovedSkill: async (studentId) => {
     console.error('Error calculating improved skill:', error);
     return null;
   }
+},
+
+// دالة جديدة: جلب الخطة الأسبوعية للدروس (بما في ذلك الواجب)
+getWeeklyLessons: async (studentId, weekStartDate) => {
+  try {
+    // نجيب الطالب مع العلاقات
+    const { data: student, error: studentError } = await supabase
+      .from('students')
+      .select(`
+        *,
+        grade_levels(*),
+        group_types(*)
+      `)
+      .eq('id', studentId)
+      .single();
+
+    if (studentError || !student) {
+      return [];
+    }
+
+    // ثم الخطة العامة
+    const { data: weeklyPlan } = await supabase 
+      .from('weekly_plans')
+      .select('plan_data')
+      .eq('group_type_id', student.group_types.id)
+      .eq('grade_level_id', student.grade_levels.id)
+      .eq('week_start_date', weekStartDate)
+      .single();
+
+    // تحويل بيانات الخطة إلى تنسيق متوافق مع الواجهة
+    const lessons = [];
+    const startDate = new Date(weekStartDate);
+    const weekDays = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+
+    weekDays.forEach((dayName, index) => {
+      const dayData = weeklyPlan.plan_data[dayName];
+      if (dayData && dayData.lesson && dayData.lesson.trim() !== '') {
+        const lessonDate = new Date(startDate);
+        lessonDate.setDate(startDate.getDate() + index);
+        
+        lessons.push({
+          id: `plan-${dayName}-${weekStartDate}`,
+          title: dayData.lesson,
+          content: dayData.lesson,
+          homework: dayData.homework,
+          lesson_date: lessonDate.toISOString().split('T')[0],
+          day_name: dayName,
+          notes: dayData.notes
+        });
+      }
+    });
+
+    return lessons;
+
+  } catch (error) {
+    console.error('Error fetching weekly lessons:', error);
+    return [];
+  }
 }
 };

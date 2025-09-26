@@ -10,6 +10,7 @@ import Sidebar from '../components/Sidebar';
 import TeacherMessagesList from '../components/TeacherDashboard/TeacherMessagesList';
 import TeacherReplyForm from '../components/TeacherDashboard/TeacherReplyForm';
 import teacherMessageService from '../services/teacherMessageService';
+import WeeklyPlanEditor from '../components/WeeklyPlanEditor';
 import { getCurrentTeacherId } from '../services/teacherService';
 
 
@@ -25,6 +26,7 @@ const TeacherDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [filterGroupType, setFilterGroupType] = useState('');
 const [filterGradeLevel, setFilterGradeLevel] = useState('');
+const [teacherId, setTeacherId] = useState(null);
 const [groupTypes, setGroupTypes] = useState([]);
 const [gradeLevels, setGradeLevels] = useState([]);
 const [searchTerm, setSearchTerm] = useState('');
@@ -180,8 +182,10 @@ const calculateTotalScore = (assessment) => {
       const currentTeacherId = await getCurrentTeacherId();
       if (!currentTeacherId) {
         console.error('لا يمكن تحديد هوية المدرس');
+        setTeacherId(null);
         return;
       }
+       setTeacherId(currentTeacherId);
 
       const { data: studentsData, count: studentsCount } = await supabase
         .from('students')
@@ -329,6 +333,12 @@ const weeklyClassesCount = allLessons.filter(lesson => {
             onClick={() => setActiveTab('messages')}
           >
             <span>رسائل أولياء الأمور</span>
+          </button>
+                    <button // 👈 الزر الجديد يبدأ هنا
+            className={`tab-btn ${activeTab === 'weekly-plan' ? 'active' : ''}`}
+            onClick={() => setActiveTab('weekly-plan')}
+          >
+            <span>الخطة الأسبوعية</span>
           </button>
         </div>
 
@@ -539,6 +549,14 @@ const weeklyClassesCount = allLessons.filter(lesson => {
               />
             )}
           </div>
+        )}
+
+        {/* 💥 عرض محرر الخطة الأسبوعية */}
+        {activeTab === 'weekly-plan' && ( 
+          <WeeklyPlanEditor 
+            studentId={students[0]?.id} // استخدام أول طالب متاح حاليًا
+            teacherId={teacherId} 
+          />
         )}
       </div>
       

@@ -4,7 +4,6 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import StudentsPage from './pages/StudentsPage';
 import './styles/main.css';
 import DailyAssessmentPage from './pages/DailyAssessmentPage';
-import WeeklyAssessmentPage from './pages/WeeklyAssessmentPage';
 
 function App() {
   return (
