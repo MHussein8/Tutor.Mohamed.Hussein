@@ -1598,3 +1598,6 @@ body {
     z-index: 101;
     cursor: pointer;
 }
+.dashboard-header-new::after {
+    pointer-events: none; /* ← هذا السطر مهم جداً */
+}
