@@ -178,26 +178,7 @@ body {
 .dashboard-header.centered-header {
   text-align: center;
 }
-.dashboard-tabs {
-  display: flex;
-  gap: 10px; /* لإنشاء مسافة بين الأزرار */
-  justify-content: flex-start; /* لضمان أن الأزرار تبدأ من اليسار ولا تمتد */
-  width: auto; /* لمنع الحاوية من التمدد بشكل غير ضروري */
-  margin-bottom: 25px; /* لإضافة مسافة تحت الأزرار */
-}
 
-.tab-btn {
-  background-color: transparent;
-  border: none;
-  padding: 15px 30px; /* يمكنك التحكم في حجم الزر هنا */
-  font-size: 1.2rem;
-  font-weight: 500;
-  cursor: pointer;
-  color: #fafcfa;
-  transition: color 0.3s ease, border-bottom 0.3s ease;
-  position: relative;
-  /* يمكن إزالة width: 100% أو flex: 1 إن وجدت هنا */
-}
 
 .dashboard-header h1 {
   margin: 0 0 10px 0;
@@ -1067,73 +1048,83 @@ body {
   background: #ff3742;
 }
 
+/* تبويبات لوحة التحكم */
 .dashboard-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  padding: 20px;
-  margin-bottom: 30px;
-  background: linear-gradient(135deg, #95f5b5 0%, #8cf788 100%);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .tab-btn {
-  padding: 18px 15px;
-  background: rgb(248, 247, 171);
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  padding: 12px 20px;
+  border: none;
+  background: #f8f9fa;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  text-align: center;
+  font-size: 14px;
   font-weight: 600;
-  color: #475569;
-  font-size: 16px;
-  position: relative;
-  overflow: hidden;
-}
-
-.tab-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 80px;
+  color: #666;
+  border: 2px solid transparent;
 }
 
 .tab-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: #e9ecef;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  color: #334155;
-}
-
-.tab-btn:hover::before {
-  transform: scaleX(1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: #667eea;
   color: white;
-  border-color: #3b82f6;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
-}
-
-.tab-btn.active::before {
-  background: white;
-  transform: scaleX(1);
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .tab-btn.active:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  box-shadow: 0 10px 35px rgba(59, 130, 246, 0.4);
+  background: #5a6fd8;
+  transform: translateY(-2px);
+}
+
+/* تحسين المظهر العام */
+.weekly-plan-container,
+.archive-container {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.dashboard-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 2em;
+}
+
+.dashboard-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1.1em;
 }
 
 /* تأثيرات إضافية للتميز */
@@ -1154,3 +1145,4 @@ body {
   font-size: 12px;
   font-weight: 600;
 }
+

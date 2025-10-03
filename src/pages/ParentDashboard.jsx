@@ -25,6 +25,20 @@ const getCurrentWeek = () => {
   return startOfWeek.toLocaleDateString('en-CA');
 };
 
+// دالة مساعدة للحصول على نطاق التاريخ في الأسبوع للعرض
+const getWeekRange = (weekDate) => {
+  const start = new Date(weekDate);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 5); // 5 أيام بعد السبت (لبلوغ الخميس)
+
+  // هذه هي الأسطر التي يجب عليك إنشاؤها (لأنها تعرض التاريخ)
+  const formatOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
+  const startFormatted = start.toLocaleDateString('ar-EG', formatOptions);
+  const endFormatted = end.toLocaleDateString('ar-EG', formatOptions);
+  
+  return `${startFormatted} - ${endFormatted}`;
+};
+
 // دالة عبقرية لتحديد لون شريط التقدم بناءً على الدرجة
 const getScoreColor = (score, maxScore) => {
   if (maxScore === 0) return 'hsl(0, 0%, 50%)';
@@ -32,10 +46,31 @@ const getScoreColor = (score, maxScore) => {
   return `hsl(${hue}, 70%, 50%)`;
 };
 
+// دالة مساعدة للحصول على أيام الأسبوع ككائنات { name, date }
+const getDaysOfWeek = (weekDate) => {
+  const start = new Date(weekDate);
+  const days = [];
+  
+  // نضمن تكراراً لـ 7 أيام كاملة بدءاً من تاريخ البداية
+  const options = { weekday: 'long' }; 
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    days.push({
+      dateString: date.toLocaleDateString('en-CA'), // مثال: 2023-10-21 (للمقارنة في الفلترة)
+      dayName: date.toLocaleDateString('ar-EG', options), // مثال: السبت
+      fullDate: date.toLocaleDateString('ar-EG'), // مثال: ٢١‏/١٠‏/٢٠٢٣
+    });
+  }
+  return days;
+};
+
 // تم تعديل هذا السطر لقبول الـ prop
 const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [students, setStudents] = useState([]);
+  const [studentTeacherId, setStudentTeacherId] = useState(null);
   const [dailyAssessments, setDailyAssessments] = useState([]);
   const [weeklyReport, setWeeklyReport] = useState(null);
   const [weeklyLessons, setWeeklyLessons] = useState([]);
@@ -48,8 +83,8 @@ const ParentDashboard = ({ parentUser, onLogout, parentId }) => {
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [sentMessages, setSentMessages] = useState([]);
-
+const [sentMessages, setSentMessages] = useState([]);
+  const [selectedDay, setSelectedDay] = useState(null); // الحالة الجديدة
   // دالة لجلب الرسائل المرسلة من ولي الأمر
 const fetchSentMessages = useCallback(async () => {
   if (!parentId) {
@@ -159,7 +194,22 @@ const progressPercentage = await calculateProgress(studentId);
   }
 }, []);
 
+// تحديث معلم الطالب عند تغيير الطالب المختار
+useEffect(() => {
+  const updateStudentTeacher = () => {
+    if (selectedStudent && students.length > 0) {
+      const currentStudent = students.find(student => 
+        student.student_id === selectedStudent
+      );
+      
+      // جلب teacher_id من بيانات الطالب
+      const teacherId = currentStudent?.students?.teacher_id;
+      setStudentTeacherId(teacherId || null);
+    }
+  };
 
+  updateStudentTeacher();
+}, [selectedStudent, students]);
 
 
   const loadParentData = useCallback(async () => {
@@ -167,6 +217,8 @@ const progressPercentage = await calculateProgress(studentId);
       setLoading(true);
       const studentData = await parentService.getStudentsByParent(parentId);
       setStudents(studentData);
+      console.log('بيانات الطلاب المحملة:', studentData);
+
 
       if (studentData.length > 0) {
         setSelectedStudent(studentData[0].student_id);
@@ -200,11 +252,19 @@ const loadWeeklyLessons = async (studentId, weekDate) => {
     setWeeklyLessons([]);
   }
 };
-  useEffect(() => {
+useEffect(() => {
     if (selectedStudent) {
       loadWeeklyReport(selectedStudent, selectedWeek);
       loadParentMessages(selectedStudent);
       loadWeeklyLessons(selectedStudent, selectedWeek);
+    }
+    
+    // تعيين اليوم الافتراضي لأول يوم في الأسبوع المختار
+    if (selectedWeek) {
+        const days = getDaysOfWeek(selectedWeek);
+        if (days.length > 0) {
+            setSelectedDay(days[0].dateString);
+        }
     }
   }, [selectedStudent, selectedWeek]);
   
@@ -280,16 +340,18 @@ setWeeklyReport({
     await loadWeeklyReport(studentId, selectedWeek);
   };
 
-  const handlePreviousWeek = () => {
+const handlePreviousWeek = () => {
     const newWeek = new Date(selectedWeek);
     newWeek.setDate(newWeek.getDate() - 7);
     setSelectedWeek(newWeek.toISOString().split('T')[0]);
+    setSelectedDay(null); // مسح اليوم المختار لتحديثه في useEffect
   };
 
-  const handleNextWeek = () => {
+const handleNextWeek = () => {
     const newWeek = new Date(selectedWeek);
     newWeek.setDate(newWeek.getDate() + 7);
     setSelectedWeek(newWeek.toISOString().split('T')[0]);
+    setSelectedDay(null); // مسح اليوم المختار لتحديثه في useEffect
   };
 
 const handleDateChange = (e) => {
@@ -304,14 +366,6 @@ const handleDateChange = (e) => {
     startOfWeek.setHours(0, 0, 0, 0);
     
     setSelectedWeek(startOfWeek.toLocaleDateString('en-CA'));
-};
-
-const getWeekRange = (weekDate) => {
-  const start = new Date(weekDate);
-  const end = new Date(weekDate);
-  end.setDate(end.getDate() + 6);
-  const options = { year: 'numeric', month: 'short', day: 'numeric' };
-  return `${start.toLocaleDateString('ar-EG', options)} - ${end.toLocaleDateString('ar-EG', options)}`;
 };
 
   if (loading) {
@@ -626,7 +680,7 @@ const getWeekRange = (weekDate) => {
               </div>
             </div>
 
-            <div className="week-selector-container-new">
+            <div className="week-selector-container-new-mobile-fix">
               <div className="week-navigation-new">
                 <button onClick={handlePreviousWeek} className="nav-btn-new">
                   <i className="fas fa-chevron-right"></i>
@@ -745,7 +799,7 @@ const getWeekRange = (weekDate) => {
     <p className="plan-description">اطلع على الدروس والواجبات المخصصة لابنك/ابنتك لهذا الأسبوع.</p>
 
     {/* إضافة عناصر التحكم بالأسبوع */}
-    <div className="week-selector-container-new">
+    <div className="week-selector-container-new-mobile-fix">
       <div className="week-navigation-new">
         <button onClick={handlePreviousWeek} className="nav-btn-new">
           <i className="fas fa-chevron-right"></i>
@@ -760,46 +814,134 @@ const getWeekRange = (weekDate) => {
         </button>
       </div>
     </div>
+    
+    {/* 👈 تصميم فلاتر الأيام الجديدة */}
+    <div className="days-filter-new">
+      {getDaysOfWeek(selectedWeek).map((day) => {
+        // نحدد إذا كان هناك درس في هذا اليوم لعرض الفلتر
+        const hasLesson = weeklyLessons.some(l => 
+          new Date(l.lesson_date).toLocaleDateString('en-CA') === day.dateString
+        );
+        
+        // إذا لم يكن هناك دروس لهذا اليوم، لا نعرض الفلتر (اخياري)
+        if (!hasLesson) return null;
 
-    {weeklyLessons.length > 0 ? (
-      <div className="weekly-plan-table-container">
-        <table className="weekly-plan-table">
-          <thead>
-            <tr>
-              <th>اليوم</th>
-              <th>التاريخ</th>
-              <th>الدرس</th>
-              <th>الواجب</th>
-              <th>ملاحظات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {weeklyLessons.map((lesson, index) => (
-              <tr key={lesson.id} className={`day-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
-                <td className="day-name">{lesson.day_name}</td>
-                <td className="lesson-date">
-                  {new Date(lesson.lesson_date).toLocaleDateString('ar-EG')}
-                </td>
-                <td className="lesson-title">
-                  <div className="lesson-content">{lesson.title || '---'}</div>
-                </td>
-                <td className="lesson-homework">
-                  <div className="lesson-content">{lesson.homework || 'لا يوجد واجب'}</div>
-                </td>
-                <td className="lesson-notes">
-                  <div className="lesson-content">{lesson.notes || '---'}</div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    ) : (
-      <div className="no-plan-new">
-        <div className="no-plan-icon">📘</div>
-        <p>لا توجد خطة دروس مُضافة لهذا الأسبوع حتى الآن.</p>
-      </div>
-    )}
+        return (
+          <button
+            key={day.dateString}
+            className={`day-filter-btn ${selectedDay === day.dateString ? 'active' : ''}`}
+            onClick={() => setSelectedDay(day.dateString)}
+          >
+            {day.dayName}
+            <div className="day-date-new">
+              {day.fullDate}
+              {!hasLesson && <i className="no-lesson-dot"></i>} {/* يمكن إضافة نقطة لتمييز الأيام التي بها دروس */}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+
+    <div className="day-view-new">
+      {selectedDay ? (
+        (() => {
+          const lessonForSelectedDay = weeklyLessons.find(l => 
+            new Date(l.lesson_date).toLocaleDateString('en-CA') === selectedDay
+          );
+                    console.log("بيانات الدرس لليوم المختار:", lessonForSelectedDay);
+
+
+          if (lessonForSelectedDay) {
+            return (
+              <div className="cards-container-new">
+                {/* 1. بطاقة الدرس */}
+                <div className="card-new lesson">
+                    <div className="card-header-new-plan">
+                        <div className="card-icon">📖</div>
+                        <h3>الدرس</h3>
+                    </div>
+                    <div className="card-content-new-plan">
+<div dangerouslySetInnerHTML={{ __html: lessonForSelectedDay.content || 'لا يوجد وصف تفصيلي لهذا الدرس.' }} />
+                    </div>
+                </div>
+                
+                {/* 2. بطاقة الواجب */}
+                <div className="card-new homework">
+                    <div className="card-header-new-plan">
+                        <div className="card-icon">✏️</div>
+                        <h3>الواجب</h3>
+                    </div>
+                    <div className="card-content-new-plan">
+                        <div dangerouslySetInnerHTML={{ __html: lessonForSelectedDay.homework || 'لا يوجد واجب لهذا اليوم.' }} />
+                    </div>
+                </div>
+                
+                {/* 3. بطاقة الملاحظات */}
+                {lessonForSelectedDay.notes && (
+                  <div className="card-new notes">
+                      <div className="card-header-new-plan">
+                          <div className="card-icon">💡</div>
+                          <h3>ملاحظات المعلم</h3>
+                      </div>
+<div className="card-content-new-plan">
+                              <div dangerouslySetInnerHTML={{ __html: lessonForSelectedDay.notes }} />
+                          </div>
+                  </div>
+                )}
+                
+                {/* 4. بطاقة التقييمات المخطط لها (مثال ثابت لتصميمك) */}
+<div className="card-new evaluation">
+    <div className="card-header-new-plan">
+        <div className="card-icon">⭐</div>
+        <h3>عناصر التقييم اليومي</h3>
+    </div>
+    <div className="card-content-new-plan">
+        {/* التحقق من وجود بيانات تقييم وعرضها */}
+        {lessonForSelectedDay.evaluations && Object.keys(lessonForSelectedDay.evaluations).length > 0 ? (
+            <ul className="evaluation-items-list">
+                {Object.keys(lessonForSelectedDay.evaluations).map(key => {
+                    const evalItem = lessonForSelectedDay.evaluations[key];
+                    // نعرض العنصر فقط إذا كان "نشطاً" (active: true)
+                    if (evalItem.active) {
+                        return (
+                            <li key={key}>
+                                <span className="eval-name">
+                                    {/* عرض اسم التقييم (مثل: Writing) */}
+                                    {key.charAt(0).toUpperCase() + key.slice(1)}: 
+                                </span>
+                                <div className="eval-details">
+                                    {/* عرض التفاصيل المضافة من المعلم */}
+                                    {evalItem.details || 'لم يتم إضافة تفاصيل لهذا العنصر.'}
+                                </div>
+                            </li>
+                        );
+                    }
+                    return null;
+                })}
+            </ul>
+        ) : (
+            <p className="evaluation-note">لا توجد تقييمات مُخطط لها لهذا اليوم.</p>
+        )}
+    </div>
+</div>
+              </div>
+            );
+          } else {
+            return (
+              <div className="no-plan-new">
+                <div className="no-plan-icon">📘</div>
+                <p>لا توجد خطة دروس مُضافة لليوم المختار ({new Date(selectedDay).toLocaleDateString('ar-EG')}).</p>
+              </div>
+            );
+          }
+        })()
+      ) : (
+        <div className="no-plan-new">
+          <div className="no-plan-icon">📅</div>
+          <p>يرجى اختيار يوم من الأسبوع أعلاه لعرض الخطة.</p>
+        </div>
+      )}
+    </div>
   </div>
 )}
         {activeTab === 'notes' && (
@@ -842,7 +984,7 @@ const getWeekRange = (weekDate) => {
               onSendMessage={handleSendMessage} 
               parentId={parentId} 
               studentId={selectedStudent}
-              teacherId={1} // يمكن تعديل هذا لاحقًا ليكون معلم الطالب الفعلي
+              teacherId={studentTeacherId}
             />
             
             <div className="sent-messages-container">

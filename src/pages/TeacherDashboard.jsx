@@ -7,10 +7,11 @@ import '../styles/TeacherDashboard.css';
 import AddStudentModal from '../components/AddStudentModal';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import WeeklyPlanInput from '../components/WeeklyPlanInput';
+import WeeklyPlanArchive from '../components/WeeklyPlanArchive';
 import TeacherMessagesList from '../components/TeacherDashboard/TeacherMessagesList';
 import TeacherReplyForm from '../components/TeacherDashboard/TeacherReplyForm';
 import teacherMessageService from '../services/teacherMessageService';
-import WeeklyPlanEditor from '../components/WeeklyPlanEditor';
 import { getCurrentTeacherId } from '../services/teacherService';
 
 
@@ -113,6 +114,11 @@ const handleReplyToMessage = async (replyData) => {
       console.error('Error marking message as read:', error);
     }
   };
+
+  const goToArchiveTab = () => {
+  console.log('📍 الانتقال إلى تبويب الأرشيف');
+  setActiveTab('archive'); // هذا سيغير التبويب إلى الأرشيف
+};
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ar-EG');
@@ -321,26 +327,32 @@ const weeklyClassesCount = allLessons.filter(lesson => {
           <p>مرحباً بك في نظام إدارة الفصل الدراسي</p>
         </div>
         
-        <div className="dashboard-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <span>لوحة التحكم</span>
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'messages' ? 'active' : ''}`}
-            onClick={() => setActiveTab('messages')}
-          >
-            <span>رسائل أولياء الأمور</span>
-          </button>
-                    <button // 👈 الزر الجديد يبدأ هنا
-            className={`tab-btn ${activeTab === 'weekly-plan' ? 'active' : ''}`}
-            onClick={() => setActiveTab('weekly-plan')}
-          >
-            <span>الخطة الأسبوعية</span>
-          </button>
-        </div>
+<div className="dashboard-tabs">
+  <button 
+    className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+    onClick={() => setActiveTab('dashboard')}
+  >
+    <span>التحكم</span>
+  </button>
+  <button 
+    className={`tab-btn ${activeTab === 'messages' ? 'active' : ''}`}
+    onClick={() => setActiveTab('messages')}
+  >
+    <span>الرسائل</span>
+  </button>
+  <button 
+    className={`tab-btn ${activeTab === 'weekly-plan' ? 'active' : ''}`}
+    onClick={() => setActiveTab('weekly-plan')}
+  >
+    <span>الخطة</span>
+  </button>
+  <button 
+    className={`tab-btn ${activeTab === 'archive' ? 'active' : ''}`}
+    onClick={() => setActiveTab('archive')}
+  >
+    <span>الأرشيف</span>
+  </button>
+</div>
 
         {activeTab === 'dashboard' && (
           <>
@@ -551,15 +563,21 @@ const weeklyClassesCount = allLessons.filter(lesson => {
           </div>
         )}
 
-        {/* 💥 عرض محرر الخطة الأسبوعية */}
-        {activeTab === 'weekly-plan' && ( 
-          <WeeklyPlanEditor 
-            studentId={students[0]?.id} // استخدام أول طالب متاح حاليًا
-            teacherId={teacherId} 
-          />
-        )}
-      </div>
-      
+        {/* 💥 عرض محرر الخطة الأسبوعية في نفس الصفحة */}
+{activeTab === 'weekly-plan' && ( 
+  <div className="weekly-plan-container">
+    <WeeklyPlanInput 
+      teacherId={teacherId} 
+      onGoToArchive={goToArchiveTab} // 👈 أضف هذا السطر
+    />
+  </div>
+)}
+{activeTab === 'archive' && (
+  <div className="archive-container">
+    <WeeklyPlanArchive teacherId={teacherId} />
+  </div>
+)}      
+</div>
       <AddStudentModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}

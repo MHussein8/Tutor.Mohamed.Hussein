@@ -1266,328 +1266,178 @@ body {
     border-left: 4px solid var(--primary-color);
 }
 
-/* تنسيقات الجدول الجديدة */
-.weekly-plan-table-container {
-    margin-top: 25px;
-    overflow-x: auto;
+/* =================================================== */
+/* 🆕 تصميم جديد: فلاتر الأيام وعرض البطاقات اليومية */
+/* =================================================== */
+
+/* 1. تصميم فلاتر الأيام (Day Filters) */
+.days-filter-new {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 30px 0;
+    overflow-x: auto; /* للسماح بالتمرير الأفقي في الشاشات الصغيرة */
+    padding-bottom: 5px;
+    scrollbar-width: none; /* إخفاء شريط التمرير لمتصفحات Firefox */
+}
+
+/* إخفاء شريط التمرير لـ Chrome/Safari */
+.days-filter-new::-webkit-scrollbar {
+    display: none;
+}
+
+.day-filter-btn {
+    flex-shrink: 0; /* منع الأزرار من الانكماش */
+    background: var(--light-bg);
+    color: var(--dark-text);
+    border: 2px solid #ddd;
+    padding: 12px 20px;
     border-radius: 15px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-}
-
-.weekly-plan-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: var(--white);
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-    position: relative;
-}
-
-.weekly-plan-table::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, transparent 50%);
-    pointer-events: none;
-}
-
-.weekly-plan-table th {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
-    color: var(--white);
-    padding: 18px 15px;
-    text-align: right;
-    font-weight: 700;
+    cursor: pointer;
     font-size: 16px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: none;
-    position: relative;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-weight: 600;
+    transition: var(--transition);
+    text-align: center;
+    min-width: 140px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
-.weekly-plan-table th::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 100%;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.3);
+.day-filter-btn:hover {
+    background: #e6f0ff;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(75, 108, 183, 0.1);
 }
 
-.weekly-plan-table td {
-    padding: 20px 15px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    text-align: right;
-    vertical-align: top;
-    transition: all 0.3s ease;
-    position: relative;
+.day-filter-btn.active {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+    box-shadow: 0 8px 20px rgba(75, 108, 183, 0.3);
+    transform: scale(1.02);
 }
 
-.day-row {
+.day-date-new {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    margin-top: 5px;
+    color: inherit;
+    opacity: 0.8;
+}
+
+/* 2. تصميم عرض البطاقات (Day View) */
+.day-view-new {
+    margin-top: 30px;
+}
+
+.cards-container-new {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+}
+
+.card-new {
     background: var(--white);
-    transition: all 0.3s ease;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    border-right: 5px solid transparent;
 }
 
-.day-row.even {
-    background: #fafbff;
+.card-new:hover {
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
 }
 
-.day-row.odd {
-    background: var(--white);
+/* ألوان حدود البطاقات */
+.card-new.lesson { border-right-color: var(--primary-color); }
+.card-new.homework { border-right-color: var(--success-color); }
+.card-new.notes { border-right-color: var(--warning-color); }
+.card-new.evaluation { border-right-color: var(--info-color); }
+
+
+.card-header-new-plan {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #eee;
 }
 
-.day-row:hover {
-    background: linear-gradient(135deg, #f0f4ff 0%, #f8faff 100%);
-    transform: translateX(-5px);
-    box-shadow: inset 4px 0 0 var(--primary-color);
-}
-
-.day-row:hover td {
-    background: transparent;
-}
-
-.day-name {
+.card-header-new-plan h3 {
+    margin: 0;
+    font-size: 20px;
     font-weight: 700;
     color: var(--dark-text);
-    font-size: 16px;
-    min-width: 100px;
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, transparent 100%);
-    border-right: 3px solid var(--primary-color);
 }
 
-.lesson-date {
-    color: var(--light-text);
-    font-weight: 500;
-    min-width: 120px;
-    font-size: 14px;
+.card-icon {
+    font-size: 28px;
+    line-height: 1;
 }
 
-.lesson-content {
-    white-space: pre-wrap;
-    text-align: right;
-    line-height: 1.6;
-    word-wrap: break-word;
-    font-size: 14px;
-    padding: 8px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.7);
-    margin: 2px 0;
-}
+.card-new.lesson .card-header-new-plan h3 { color: var(--primary-color); }
+.card-new.homework .card-header-new-plan h3 { color: var(--success-color); }
+.card-new.notes .card-header-new-plan h3 { color: var(--warning-color); }
+.card-new.evaluation .card-header-new-plan h3 { color: var(--info-color); }
 
-.lesson-title .lesson-content {
-    color: var(--primary-color);
-    font-weight: 600;
-    background: rgba(79, 70, 229, 0.08);
-    border-right: 3px solid var(--primary-color);
-}
-
-.lesson-homework .lesson-content {
-    color: #d97706;
-    background: rgba(34, 197, 94, 0.08);
-    border-right: 3px solid var(--success-color);
-}
-
-.lesson-notes .lesson-content {
-    color: #ec4899;
-    background: rgba(236, 72, 153, 0.08);
-    border-right: 3px solid #ec4899;
-    font-style: italic;
-}
-
-/* تنسيق رسالة عدم وجود بيانات */
-.no-plan-new {
-    text-align: center;
-    padding: 60px 30px;
-    background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
-    border: 2px dashed #ffd54f;
-    color: #856404;
-    border-radius: 20px;
-    margin-top: 30px;
-    position: relative;
-    overflow: hidden;
-}
-
-.no-plan-new::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0%, 100% { transform: translateX(0) translateY(0); }
-    50% { transform: translateX(50px) translateY(50px); }
-}
-
-.no-plan-icon {
-    font-size: 60px;
-    margin-bottom: 20px;
-    opacity: 0.7;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-}
-
-.no-plan-new p {
-    font-size: 18px;
-    font-weight: 600;
+.card-content-new-plan p,
+.card-content-new-plan ul {
     margin: 0;
-    position: relative;
-    z-index: 2;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--light-text);
+}
+.card-content-new-plan ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+}
+.card-content-new-plan ul li {
+    padding: 8px 0;
+    border-bottom: 1px dotted #f1f3f9;
+}
+.card-content-new-plan .evaluation-note {
+    font-weight: 600;
+    color: var(--dark-text);
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f5f7fa;
+    padding-bottom: 10px;
+}
+.card-content-new-plan .eval-name {
+    font-weight: 700;
+    color: var(--primary-color);
 }
 
-/* تنسيقات للشاشات الصغيرة */
-@media (max-width: 1024px) {
-    .weekly-plan-table-container {
-        border-radius: 12px;
-    }
-    
-    .weekly-plan-table th {
-        padding: 15px 12px;
-        font-size: 14px;
-    }
-    
-    .weekly-plan-table td {
-        padding: 15px 12px;
-    }
-}
-
+/* 3. التجاوب مع الشاشات الصغيرة */
 @media (max-width: 768px) {
-      .week-navigation-new {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 10px;
+    .cards-container-new {
+        grid-template-columns: 1fr;
     }
-    
-    .nav-btn-new {
-        flex: 1;
-        min-width: 140px;
-        max-width: 45%;
-    }
-    
-    .current-week-display-new {
-        order: -1;
-        width: 100%;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .weekly-plan-container-new {
-        padding: 20px 15px;
-        margin: 15px 10px;
+    .day-filter-btn {
+        min-width: 100px;
+        padding: 10px 15px;
+        font-size: 15px;
         border-radius: 12px;
-    }
-    
-    .plan-main-title {
-        font-size: 24px;
-        text-align: center;
-        display: block;
-    }
-    
-    .plan-description {
-        text-align: center;
-        padding: 12px;
-        font-size: 14px;
-    }
-    
-    .weekly-plan-table-container {
-        margin-top: 20px;
-        border-radius: 10px;
-    }
-    
-    .weekly-plan-table {
-        min-width: 700px; /* للسماح بالتمرير الأفقي */
-    }
-    
-    .weekly-plan-table th {
-        padding: 12px 10px;
-        font-size: 13px;
-        white-space: nowrap;
-    }
-    
-    .weekly-plan-table td {
-        padding: 12px 10px;
-        font-size: 13px;
-    }
-    
-    .day-name, .lesson-date {
-        min-width: 80px;
-        font-size: 13px;
-    }
-    
-    .lesson-content {
-        font-size: 13px;
-        padding: 6px;
-    }
-    
-    .no-plan-new {
-        padding: 40px 20px;
-        margin: 20px 0;
-    }
-    
-    .no-plan-icon {
-        font-size: 50px;
-    }
-    
-    .no-plan-new p {
-        font-size: 16px;
     }
 }
 
 @media (max-width: 480px) {
-    .weekly-plan-container-new {
-        padding: 15px 10px;
-        margin: 10px 5px;
+    .card-new {
+        padding: 20px;
+        border-radius: 12px;
     }
-    
-    .plan-main-title {
-        font-size: 20px;
-    }
-    
-    .weekly-plan-table {
-        min-width: 600px;
-    }
-    
-    .weekly-plan-table th,
-    .weekly-plan-table td {
-        padding: 10px 8px;
-        font-size: 12px;
-    }
-    
-    .lesson-content {
-        font-size: 12px;
-        padding: 4px;
+    .card-header-new-plan h3 {
+        font-size: 18px;
     }
 }
-
-/* تأثيرات إضافية للجدول */
-.weekly-plan-table tbody tr {
-    animation: fadeInUp 0.6s ease forwards;
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.weekly-plan-table tbody tr:nth-child(1) { animation-delay: 0.1s; }
-.weekly-plan-table tbody tr:nth-child(2) { animation-delay: 0.2s; }
-.weekly-plan-table tbody tr:nth-child(3) { animation-delay: 0.3s; }
-.weekly-plan-table tbody tr:nth-child(4) { animation-delay: 0.4s; }
-.weekly-plan-table tbody tr:nth-child(5) { animation-delay: 0.5s; }
-.weekly-plan-table tbody tr:nth-child(6) { animation-delay: 0.6s; }
-.weekly-plan-table tbody tr:nth-child(7) { animation-delay: 0.7s; }
 
 .header-buttons-group {
     position: relative;
@@ -1600,4 +1450,50 @@ body {
 }
 .dashboard-header-new::after {
     pointer-events: none; /* ← هذا السطر مهم جداً */
+}
+
+/* الإصدار النهائي للإصلاح: ضمان الملاءمة الكاملة في جميع شاشات الجوال */
+@media (max-width: 768px) {
+  /* الحاوية الأبوية الجديدة التي تم إنشاؤها في ملف JSX */
+  .week-selector-container-new-mobile-fix {
+    width: 100%;
+    padding: 0; /* تأكيد عدم وجود أي بادينغ يدفع المحتوى للخارج */
+  }
+  
+  /* حاوية التنقل الداخلية التي تحتوي الأزرار والتاريخ */
+  .week-selector-container-new-mobile-fix .week-navigation-new {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 100%; 
+    padding: 0 5px; 
+    box-sizing: border-box; /* الأهم: لضمان أن البادينج لا يزيد العرض الكلي */
+  }
+
+  /* عنصر عرض نطاق التاريخ */
+  .week-selector-container-new-mobile-fix .current-week-display-new {
+    flex-grow: 10;
+    flex-shrink: 1;
+    min-width: 70px; /* تقليل الحجم الأدنى لزيادة مرونة التاريخ */
+    text-align: center;
+    white-space: nowrap; 
+    padding: 5px 0; 
+    margin: 0 5px;
+    font-size: 13px; /* تصغير الخط لضمان الملاءمة */
+  }
+
+  /* أزرار التنقل (الأسبوع السابق/التالي) */
+  .week-selector-container-new-mobile-fix .nav-btn-new {
+    flex-shrink: 0; 
+    min-width: 75px; /* تقليل العرض الأدنى للزر لزيادة المساحة المتاحة */
+    max-width: 90px; 
+    padding: 5px; 
+    font-size: 13px; /* تصغير خط الزر */
+  }
+  
+  /* لضمان بقاء النص والأيقونة في سطر واحد داخل الزر */
+  .week-selector-container-new-mobile-fix .nav-btn-new span,
+  .week-selector-container-new-mobile-fix .nav-btn-new i {
+    display: inline;
+  }
 }

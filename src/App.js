@@ -7,6 +7,7 @@ import LessonsManagementPage from './pages/LessonsManagementPage';
 import StudentsPage from './pages/StudentsPage';
 import DailyAssessmentReportPage from './pages/DailyAssessmentReportPage';
 import StudentAssessmentsPage from './pages/StudentAssessmentsPage';
+import TeacherWeeklyPlans from './pages/TeacherWeeklyPlans';
 import ParentDashboard from './pages/ParentDashboard';
 import ParentLogin from './pages/ParentLogin';
 import AddParentPage from './pages/AddParentPage';
@@ -52,6 +53,7 @@ function App() {
         <Route path="/weekly-report" element={<WeeklyReportPage />} />
         <Route path="/lessons-management" element={<LessonsManagementPage />} />
         <Route path="/students" element={<StudentsPage />} />
+        <Route path="/weekly-plans" element={<TeacherWeeklyPlans />} />
         <Route path="/student-assessments/:studentId" element={<StudentAssessmentsPage />} />
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/add-parent-student" element={<AddParentPage />} />

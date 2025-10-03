@@ -14,7 +14,8 @@ export const parentService = {
           first_name,
           last_name,
           birth_date,
-          grade_levels (name)
+          grade_levels (name),
+          teacher_id
         )
       `)
       .eq('parent_id', parentId);
@@ -205,7 +206,7 @@ getMostImprovedSkill: async (studentId) => {
 // دالة جديدة: جلب الخطة الأسبوعية للدروس (بما في ذلك الواجب)
 getWeeklyLessons: async (studentId, weekStartDate) => {
   try {
-    // نجيب الطالب مع العلاقات
+    // 1. نجيب الطالب مع العلاقات
     const { data: student, error: studentError } = await supabase
       .from('students')
       .select(`
@@ -217,21 +218,39 @@ getWeeklyLessons: async (studentId, weekStartDate) => {
       .single();
 
     if (studentError || !student) {
+      // إرجاع مصفوفة فارغة إذا لم يتم العثور على الطالب
+      console.warn(`Student with ID ${studentId} not found or error occurred:`, studentError);
       return [];
     }
+    
+    // **التعديل رقم 1: ضمان تنسيق التاريخ (YYYY-MM-DD)**
+    // تحويل التاريخ المُمرر إلى تنسيق 'YYYY-MM-DD' ليتوافق مع عمود 'date' في قاعدة البيانات (يحل مشكلة 406).
+    const formattedWeekStartDate = new Date(weekStartDate).toISOString().split('T')[0];
 
-    // ثم الخطة العامة
-    const { data: weeklyPlan } = await supabase 
+    // 2. ثم الخطة العامة
+    // **التعديل رقم 2: استخدام maybeSingle()**
+    // يسمح بإرجاع null بدلاً من إلقاء خطأ في حالة عدم العثور على نتيجة.
+    const { data: weeklyPlan, error: weeklyPlanError } = await supabase 
       .from('weekly_plans')
       .select('plan_data')
       .eq('group_type_id', student.group_types.id)
       .eq('grade_level_id', student.grade_levels.id)
-      .eq('week_start_date', weekStartDate)
-      .single();
+      .eq('week_start_date', formattedWeekStartDate) // استخدام التاريخ المُنظف
+      .maybeSingle(); 
+
+    if (weeklyPlanError) throw weeklyPlanError; // معالجة أخطاء الاتصال/الخادم الصريحة
+
+    // **التعديل رقم 3: التحقق الشامل من القيمة الفارغة (لحل TypeError)**
+    // يمنع انهيار التطبيق إذا كانت weeklyPlan هي null أو plan_data غير موجود.
+    if (!weeklyPlan || !weeklyPlan.plan_data) {
+        console.warn(`No weekly plan found for Grade ${student.grade_levels.id} starting ${formattedWeekStartDate}`);
+        return []; // إرجاع آمن
+    }
 
     // تحويل بيانات الخطة إلى تنسيق متوافق مع الواجهة
     const lessons = [];
-    const startDate = new Date(weekStartDate);
+    // استخدام التاريخ المُنظف لضمان دقة الحسابات
+    const startDate = new Date(formattedWeekStartDate);
     const weekDays = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
     weekDays.forEach((dayName, index) => {
@@ -241,13 +260,14 @@ getWeeklyLessons: async (studentId, weekStartDate) => {
         lessonDate.setDate(startDate.getDate() + index);
         
         lessons.push({
-          id: `plan-${dayName}-${weekStartDate}`,
+          id: `plan-${dayName}-${formattedWeekStartDate}`, // استخدام التاريخ المُنظف في الـ ID
           title: dayData.lesson,
           content: dayData.lesson,
           homework: dayData.homework,
           lesson_date: lessonDate.toISOString().split('T')[0],
           day_name: dayName,
-          notes: dayData.notes
+          notes: dayData.notes,
+          evaluations: dayData.evaluations || {}
         });
       }
     });
@@ -256,6 +276,7 @@ getWeeklyLessons: async (studentId, weekStartDate) => {
 
   } catch (error) {
     console.error('Error fetching weekly lessons:', error);
+    // إرجاع آمن في حال حدوث خطأ
     return [];
   }
 }
