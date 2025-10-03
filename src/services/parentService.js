@@ -251,26 +251,25 @@ getWeeklyLessons: async (studentId, weekStartDate) => {
     const lessons = [];
     // استخدام التاريخ المُنظف لضمان دقة الحسابات
     const startDate = new Date(formattedWeekStartDate);
-    const weekDays = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
-
-    weekDays.forEach((dayName, index) => {
-      const dayData = weeklyPlan.plan_data[dayName];
-      if (dayData && dayData.lesson && dayData.lesson.trim() !== '') {
-        const lessonDate = new Date(startDate);
-        lessonDate.setDate(startDate.getDate() + index);
-        
-        lessons.push({
-          id: `plan-${dayName}-${formattedWeekStartDate}`, // استخدام التاريخ المُنظف في الـ ID
-          title: dayData.lesson,
-          content: dayData.lesson,
-          homework: dayData.homework,
-          lesson_date: lessonDate.toISOString().split('T')[0],
-          day_name: dayName,
-          notes: dayData.notes,
-          evaluations: dayData.evaluations || {}
-        });
-      }
+const weekDays = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+weekDays.forEach((dayName, index) => {
+  const dayData = weeklyPlan.plan_data[dayName];
+  if (dayData && dayData.lesson && dayData.lesson.trim() !== '') {
+    const lessonDate = new Date(startDate);
+    lessonDate.setDate(startDate.getDate() + index);
+    
+    lessons.push({
+      id: `plan-${dayName}-${formattedWeekStartDate}`,
+      title: dayData.lesson,
+      content: dayData.lesson,
+      homework: dayData.homework,
+      lesson_date: lessonDate.toISOString().split('T')[0],
+      day_name: dayName,
+      notes: dayData.notes,
+      evaluations: dayData.evaluations || {}
     });
+  }
+});
 
     return lessons;
 

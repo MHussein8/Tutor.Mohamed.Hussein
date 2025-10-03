@@ -246,6 +246,7 @@ useEffect(() => {
 const loadWeeklyLessons = async (studentId, weekDate) => {
   try {
     const lessonsData = await parentService.getWeeklyLessons(studentId, weekDate);
+    console.log("📚 جميع الدروس المحملة:", lessonsData); // 👈 أضف هذا
     setWeeklyLessons(lessonsData || []);
   } catch (error) {
     console.error('Error loading weekly lessons:', error);
@@ -822,7 +823,8 @@ const handleDateChange = (e) => {
         const hasLesson = weeklyLessons.some(l => 
           new Date(l.lesson_date).toLocaleDateString('en-CA') === day.dateString
         );
-        
+            console.log(`🔍 ${day.dayName} - ${day.dateString}:`, hasLesson); // 👈 أضف هذا
+
         // إذا لم يكن هناك دروس لهذا اليوم، لا نعرض الفلتر (اخياري)
         if (!hasLesson) return null;
 
